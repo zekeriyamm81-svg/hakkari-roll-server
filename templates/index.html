@@ -30,8 +30,7 @@
       <div id="registerBox" class="hidden">
         <input id="regName" placeholder="Görünen ad">
         <input id="regUser" placeholder="Kullanıcı adı">
-        <input id="regEmail" placeholder="E-posta" type="email" autocomplete="email">
-        <input id="regPass" placeholder="Şifre (en az 8 karakter)" type="password" autocomplete="new-password">
+        <input id="regPass" placeholder="Şifre" type="password">
         <button class="cta" onclick="register()">HAKKARİ ROLL'A KATIL</button>
         <button class="ghost" onclick="showLogin()">GERİ</button>
       </div>
@@ -150,6 +149,24 @@
     <label>Süre<select id="rollMinutes"><option value="30">30 dakika</option><option value="60" selected>1 saat</option><option value="180">3 saat</option><option value="360">6 saat</option></select></label>
     <label>Konum<select id="rollVisibility"><option value="approx" selected>Yaklaşık konum</option><option value="exact">Tam konum</option></select></label>
     <div class="row"><button class="cta" onclick="activateRoll()">AKTİF ET</button><button onclick="deactivateRoll()">KAPAT</button><button class="ghost" onclick="closeRollPanel()">VAZGEÇ</button></div>
+  </div>
+</div>
+
+
+<div id="verifyModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>✉️ E-posta Doğrulaması</h2>
+    <p id="verifyText">Bu işlemi yapmak için önce e-posta adresini doğrulaman gerekiyor.</p>
+    <div id="verifyEmailStep">
+      <input id="verifyEmail" type="email" placeholder="E-posta adresin">
+      <button class="cta" onclick="requestEmailVerification()">KOD GÖNDER</button>
+    </div>
+    <div id="verifyCodeStep" class="hidden">
+      <input id="verifyCode" inputmode="numeric" maxlength="6" placeholder="6 haneli kod">
+      <button class="cta" onclick="confirmEmailVerification()">DOĞRULA</button>
+      <button class="ghost" onclick="backToVerifyEmail()">E-POSTAYI DEĞİŞTİR</button>
+    </div>
+    <button class="ghost" onclick="closeVerifyModal()">ŞİMDİLİK KAPAT</button>
   </div>
 </div>
 
