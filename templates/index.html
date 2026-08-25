@@ -1,9 +1,160 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#111827"><title>Hakkari Roll</title><link rel="manifest" href="/manifest.json"><link rel="stylesheet" href="/static/app.css"></head><body><div id="toast"></div>
-<section id="authView" class="auth"><div class="auth-card"><div class="logo">HAKKARİ <span>ROLL</span></div><div class="tag">Hakkari'nin otomobil topluluğu</div><div id="loginBox"><input id="loginUser" placeholder="Kullanıcı adı"><input id="loginPass" type="password" placeholder="Şifre"><button onclick="login()">GİRİŞ YAP</button><button class="ghost" onclick="showRegister()">HESAP OLUŞTUR</button></div><div id="registerBox" class="hidden"><input id="regName" placeholder="Görünen ad"><input id="regUser" placeholder="Kullanıcı adı"><input id="regPass" type="password" placeholder="Şifre"><button onclick="register()">KAYIT OL</button><button class="ghost" onclick="showLogin()">GERİ</button></div></div></section>
-<section id="appView" class="hidden"><header><div class="logo small">HAKKARİ <span>ROLL</span></div><button class="danger" onclick="logout()">ÇIKIŞ</button></header><nav id="nav"></nav><main>
-<section id="feedPage" class="page"><div class="card"><textarea id="postBody" placeholder="Bir şey paylaş..."></textarea><input id="postPhoto" type="file" accept="image/*"><button onclick="createPost()">PAYLAŞ</button></div><div id="feed" class="stack"></div></section>
-<section id="carsPage" class="page hidden"><div class="head"><h2>Arabalar</h2><input id="carSearch" placeholder="Marka, model veya kullanıcı ara" oninput="loadVehicles()"></div><button onclick="toggleCarForm()">+ ARACIMI EKLE</button><div id="carForm" class="card hidden"><div class="grid"><input id="carBrand" placeholder="Marka"><input id="carModel" placeholder="Model"><input id="carYear" placeholder="Model yılı"><input id="carEngine" placeholder="Motor (örn. 2.0)"><select id="carFuel"><option value="">Yakıt</option><option>Benzin</option><option>Dizel</option><option>LPG</option><option>Hibrit</option><option>Elektrik</option></select><input id="carHp" placeholder="Beygir"><input id="carPlate" placeholder="Plaka"><label><input id="carPlateVisible" type="checkbox"> Plaka görünür</label></div><input id="carPhoto" type="file" accept="image/*"><textarea id="carNote" placeholder="Araç hakkında not"></textarea><button onclick="createVehicle()">KAYDET</button></div><div id="vehicles" class="cars"></div></section>
-<section id="peoplePage" class="page hidden"><div class="head"><h2>Kullanıcılar</h2><input id="peopleSearch" placeholder="Kullanıcı ara" oninput="loadPeople()"></div><div id="people" class="stack"></div></section>
-<section id="messagesPage" class="page hidden"><div class="messages"><div><h2>Mesajlar</h2><div id="conversations" class="stack"></div></div><div class="chat"><div id="chatTitle"><b>Bir sohbet seç</b></div><div id="chatMessages" class="chat-messages"></div><div class="send"><input id="chatInput" placeholder="Mesaj yaz"><button onclick="sendMessage()">GÖNDER</button></div></div></div></section>
-<section id="profilePage" class="page hidden"><div id="profileBox"></div></section><section id="adminPage" class="page hidden"><h2>Yönetim</h2><div id="adminStats" class="stats"></div><h3>Şikâyetler</h3><div id="adminReports" class="stack"></div></section>
-</main></section><script src="/static/app.js"></script></body></html>
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#05070b">
+  <title>Hakkari Roll</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div id="toast"></div>
+
+<section id="authView" class="auth-screen">
+  <div class="speed-lines"></div>
+  <div class="auth-wrap">
+    <div class="tach">
+      <div class="tach-ring"><div class="needle"></div><div class="tach-center"></div></div>
+    </div>
+    <div class="auth-card glass">
+      <div class="brand">HAKKARİ <span>ROLL</span></div>
+      <div class="brand-sub">GARAGE • STREET • COMMUNITY</div>
+      <div id="loginBox">
+        <input id="loginUser" placeholder="Kullanıcı adı" autocomplete="username">
+        <input id="loginPass" placeholder="Şifre" type="password" autocomplete="current-password">
+        <button class="cta" onclick="login()">MOTORU ÇALIŞTIR</button>
+        <button class="ghost" onclick="showRegister()">YENİ HESAP OLUŞTUR</button>
+      </div>
+      <div id="registerBox" class="hidden">
+        <input id="regName" placeholder="Görünen ad">
+        <input id="regUser" placeholder="Kullanıcı adı">
+        <input id="regPass" placeholder="Şifre" type="password">
+        <button class="cta" onclick="register()">HAKKARİ ROLL'A KATIL</button>
+        <button class="ghost" onclick="showLogin()">GERİ</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="appView" class="hidden">
+  <header class="topbar">
+    <div class="brand small">HAKKARİ <span>ROLL</span></div>
+    <div class="live-pill" id="liveCount">● 0 ROLL AKTİF</div>
+    <div class="top-actions">
+      <button id="notifBtn" class="icon-btn" onclick="openNotifications()">🔔 <span id="notifCount"></span></button>
+      <button class="icon-btn danger" onclick="logout()">⏻</button>
+    </div>
+  </header>
+  <nav id="nav" class="nav"></nav>
+
+  <main class="content">
+    <section id="homePage" class="page">
+      <div class="hero-panel">
+        <div>
+          <div class="eyebrow">HAKKARİ'DE ŞU AN</div>
+          <h1>Roll'a hazır mısın?</h1>
+          <p>Konumunu süreli paylaş, piyasadakileri gör, teklif gönder.</p>
+        </div>
+        <button id="rollToggleBtn" class="roll-btn" onclick="openRollPanel()">🟢 ROLL AKTİF ET</button>
+      </div>
+
+      <div class="quick-grid">
+        <button onclick="showPage('mapPage');loadRollMap()">🗺<span>Canlı Harita</span></button>
+        <button onclick="showPage('offersPage');loadOffers()">🔥<span>Roll Teklifleri</span></button>
+        <button onclick="showPage('eventsPage');loadEvents()">🚘<span>Piyasa / Etkinlik</span></button>
+        <button onclick="showPage('crewsPage');loadCrews()">👥<span>Ekipler</span></button>
+      </div>
+
+      <div class="composer panel">
+        <textarea id="postBody" placeholder="Bugün Hakkari'de ne var?"></textarea>
+        <div class="row">
+          <input id="postPhoto" type="file" accept="image/*">
+          <button class="cta mini" onclick="createPost()">PAYLAŞ</button>
+        </div>
+      </div>
+      <div id="feed" class="stack"></div>
+    </section>
+
+    <section id="mapPage" class="page hidden">
+      <div class="page-head"><h2>Canlı Hakkari Haritası</h2><button onclick="loadRollMap()">YENİLE</button></div>
+      <div id="rollMap"></div>
+      <div id="activeRollList" class="stack"></div>
+    </section>
+
+    <section id="carsPage" class="page hidden">
+      <div class="page-head"><h2>Dijital Garaj</h2><input id="carSearch" placeholder="Araç ara..." oninput="loadVehicles()"></div>
+      <button class="cta" onclick="toggleCarForm()">+ ARACIMI EKLE</button>
+      <div id="carForm" class="panel hidden">
+        <div class="selector-grid">
+          <label>Marka<select id="carBrand" onchange="catalogBrandChanged()"></select></label>
+          <label>Model<select id="carModel" onchange="catalogModelChanged()"></select></label>
+          <label>Yıl<select id="carYear"></select></label>
+          <label>Motor<select id="carEngine" onchange="catalogEngineChanged()"></select></label>
+          <label>Yakıt<select id="carFuel"><option>Benzin</option><option>Dizel</option><option>LPG</option><option>Hibrit</option><option>Elektrik</option></select></label>
+          <label>Şanzıman<select id="carTransmission"><option>Otomatik</option><option>Manuel</option><option>Yarı Otomatik</option></select></label>
+          <label>Kasa<select id="carBody"><option>Sedan</option><option>Hatchback</option><option>SUV</option><option>Coupe</option><option>Station Wagon</option><option>Pickup</option><option>Diğer</option></select></label>
+          <label>Çekiş<select id="carDrive"><option>Önden Çekiş</option><option>Arkadan İtiş</option><option>4x4 / AWD</option></select></label>
+          <label>Renk<input id="carColor" placeholder="Siyah"></label>
+          <label>Beygir<input id="carHp" placeholder="184"></label>
+          <label>Plaka<input id="carPlate" placeholder="30 ABC 123"></label>
+          <label class="check-line"><input id="carPlateVisible" type="checkbox"> Plaka herkese görünsün</label>
+        </div>
+        <textarea id="carMods" placeholder="Modifiye / jant / egzoz / yazılım / süspansiyon (opsiyonel)"></textarea>
+        <textarea id="carNote" placeholder="Araç hakkında kısa not"></textarea>
+        <input id="carPhoto" type="file" accept="image/*">
+        <button class="cta" onclick="createVehicle()">GARAJA EKLE</button>
+      </div>
+      <div id="vehicles" class="car-grid"></div>
+    </section>
+
+    <section id="peoplePage" class="page hidden">
+      <div class="page-head"><h2>Piyasadakiler</h2><input id="peopleSearch" placeholder="Kullanıcı ara..." oninput="loadPeople()"></div>
+      <div id="people" class="stack"></div>
+    </section>
+
+    <section id="offersPage" class="page hidden">
+      <div class="page-head"><h2>Roll & Piyasa Teklifleri</h2><button onclick="loadOffers()">YENİLE</button></div>
+      <div id="offers" class="stack"></div>
+    </section>
+
+    <section id="eventsPage" class="page hidden">
+      <div class="page-head"><h2>Piyasa / Etkinlikler</h2><button class="cta mini" onclick="createEvent()">+ OLUŞTUR</button></div>
+      <div id="events" class="stack"></div>
+    </section>
+
+    <section id="crewsPage" class="page hidden">
+      <div class="page-head"><h2>Ekipler / Crew</h2><button class="cta mini" onclick="createCrew()">+ EKİP KUR</button></div>
+      <div id="crews" class="stack"></div>
+    </section>
+
+    <section id="messagesPage" class="page hidden">
+      <div class="messages-layout">
+        <div><h2>Mesajlar</h2><div id="conversations" class="stack compact"></div></div>
+        <div id="chatPanel" class="chat-panel"><div id="chatTitle" class="chat-title">Bir sohbet seç</div><div id="chatMessages" class="chat-messages"></div><div class="chat-send"><input id="chatInput" placeholder="Mesaj yaz..."><button onclick="sendMessage()">GÖNDER</button></div></div>
+      </div>
+    </section>
+
+    <section id="profilePage" class="page hidden"><div id="profileBox"></div></section>
+    <section id="adminPage" class="page hidden"><h2>Yönetim</h2><div id="adminStats" class="stats"></div><h3>Şikâyetler</h3><div id="adminReports" class="stack"></div></section>
+  </main>
+</section>
+
+<div id="rollModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>🟢 Roll Aktif</h2>
+    <p>Konum paylaşımı isteğe bağlıdır ve seçtiğin süre sonunda otomatik kapanır.</p>
+    <label>Durum<select id="rollStatus"><option>Piyasadayım</option><option>Roll arıyorum</option><option>Geziyorum</option><option>Buluşmaya gidiyorum</option></select></label>
+    <label>Süre<select id="rollMinutes"><option value="30">30 dakika</option><option value="60" selected>1 saat</option><option value="180">3 saat</option><option value="360">6 saat</option></select></label>
+    <label>Konum<select id="rollVisibility"><option value="approx" selected>Yaklaşık konum</option><option value="exact">Tam konum</option></select></label>
+    <div class="row"><button class="cta" onclick="activateRoll()">AKTİF ET</button><button onclick="deactivateRoll()">KAPAT</button><button class="ghost" onclick="closeRollPanel()">VAZGEÇ</button></div>
+  </div>
+</div>
+
+<div id="notificationsDrawer" class="drawer hidden"><div class="drawer-head"><h3>Bildirimler</h3><button onclick="closeNotifications()">✕</button></div><div id="notifications" class="stack"></div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
