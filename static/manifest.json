@@ -1,0 +1,9 @@
+{
+  "name": "Hakkari Roll V3",
+  "short_name": "Hakkari Roll",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080d16",
+  "theme_color": "#111827",
+  "description": "Hakkari otomobil topluluğu, Roll Aktif ve canlı harita"
+}
