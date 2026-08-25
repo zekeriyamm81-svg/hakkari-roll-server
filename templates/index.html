@@ -25,7 +25,10 @@
         <input id="loginUser" placeholder="Kullanıcı adı" autocomplete="username">
         <input id="loginPass" placeholder="Şifre" type="password" autocomplete="current-password"><label class="remember"><input id="rememberMe" type="checkbox" checked> Beni hatırla</label>
         <button class="cta" onclick="login()">MOTORU ÇALIŞTIR</button>
-        <button class="ghost" onclick="showRegister()">YENİ HESAP OLUŞTUR</button>
+        <div class="auth-links">
+          <button class="linkbtn" onclick="showReset()">Şifremi unuttum?</button>
+          <button class="linkbtn" onclick="showRegister()">Yeni hesap oluştur</button>
+        </div>
       </div>
       <div id="registerBox" class="hidden">
         <input id="regName" placeholder="Görünen ad">
@@ -34,7 +37,23 @@
         <button class="cta" onclick="register()">HAKKARİ ROLL'A KATIL</button>
         <button class="ghost" onclick="showLogin()">GERİ</button>
       </div>
-    <div id="resetBox" class="hidden"><input id="resetEmail" placeholder="E-posta" type="email"><button class="primary" onclick="requestReset()">KOD GÖNDER</button><div id="resetConfirmArea" class="hidden"><input id="resetCode" placeholder="6 haneli kod"><input id="resetNewPass" placeholder="Yeni şifre" type="password"><button class="primary" onclick="confirmReset()">ŞİFREYİ YENİLE</button></div><button class="ghost" onclick="showLogin()">GERİ</button></div></div>
+      <div id="resetBox" class="hidden reset-box">
+        <div class="reset-head">
+          <div class="reset-icon">🔑</div>
+          <h2>Şifreni Yenile</h2>
+          <p>Hesabına kayıtlı e-posta adresine 6 haneli doğrulama kodu göndereceğiz.</p>
+        </div>
+        <input id="resetEmail" placeholder="E-posta adresin" type="email" autocomplete="email">
+        <button class="cta" onclick="requestReset()">KOD GÖNDER</button>
+        <div id="resetConfirmArea" class="hidden reset-confirm">
+          <div class="reset-divider"><span>KOD GELDİ Mİ?</span></div>
+          <input id="resetCode" inputmode="numeric" maxlength="6" placeholder="6 haneli kod">
+          <input id="resetNewPass" placeholder="Yeni şifre" type="password" autocomplete="new-password">
+          <button class="cta" onclick="confirmReset()">ŞİFREYİ YENİLE</button>
+        </div>
+        <button class="ghost" onclick="showLogin()">GİRİŞE DÖN</button>
+      </div>
+    </div>
   </div>
 </section>
 
