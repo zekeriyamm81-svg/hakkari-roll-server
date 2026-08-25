@@ -3,13 +3,30 @@ let token=localStorage.getItem("hr_token")||sessionStorage.getItem("hr_token")||
 let me=JSON.parse(localStorage.getItem("hr_user")||sessionStorage.getItem("hr_user")||"null");
 let activeConversation=null,messageTimer=null,rollWatchId=null,rollMap=null,rollMarkers=null,vehicleCatalog={};
 const $=id=>document.getElementById(id);
-async function api(path,opts={}){const headers=opts.headers||{};if(token)headers.Authorization=`Bearer ${token}`;const res=await fetch(path,{...opts,headers});let data={};try{data=await res.json()}catch(e){}if(!res.ok)throw new Error(data.message||`Hata ${res.status}`);return data}
+async function api(path,opts={}){
+  const headers=opts.headers||{};
+  if(token)headers.Authorization=`Bearer ${token}`;
+  const res=await fetch(path,{...opts,headers});
+  let data={};try{data=await res.json()}catch(e){}
+  if(!res.ok){
+    if(res.status===403&&data.code==="EMAIL_VERIFICATION_REQUIRED"){
+      openVerifyModal(data.message);
+    }
+    throw new Error(data.message||`Hata ${res.status}`);
+  }
+  return data
+};if(token)headers.Authorization=`Bearer ${token}`;const res=await fetch(path,{...opts,headers});let data={};try{data=await res.json()}catch(e){}if(!res.ok)throw new Error(data.message||`Hata ${res.status}`);return data}
 function toast(msg){$("toast").textContent=msg;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),3000)}
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function img(name,cls="avatar"){return name?`<img class="${cls}" src="/uploads/${encodeURIComponent(name)}">`:`<div class="${cls}"></div>`}
 function hideAuth(){["loginBox","registerBox","resetBox"].forEach(x=>$(x)?.classList.add("hidden"))}
 function showRegister(){hideAuth();$("registerBox").classList.remove("hidden")}function showLogin(){hideAuth();$("loginBox").classList.remove("hidden")}function showReset(){hideAuth();$("resetBox").classList.remove("hidden")}
-async function register(){try{const d=await api("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({display_name:$("regName").value,username:$("regUser").value,email:$("regEmail").value,password:$("regPass").value})});toast(d.message);if(d.approved&&d.token)finishAuth(d);else setTimeout(showLogin,900)}catch(e){toast(e.message)}}
+async function register(){
+  try{
+    const d=await api("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({display_name:$("regName").value,username:$("regUser").value,password:$("regPass").value})});
+    toast(d.message);finishAuth(d);
+  }catch(e){toast(e.message)}
+},body:JSON.stringify({display_name:$("regName").value,username:$("regUser").value,password:$("regPass").value})});toast(d.message);if(d.approved&&d.token)finishAuth(d);else setTimeout(showLogin,900)}catch(e){toast(e.message)}}
 async function login(){try{const d=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});finishAuth(d)}catch(e){toast(e.message)}}
 function finishAuth(d){token=d.token;me=d.user;[localStorage,sessionStorage].forEach(s=>{s.removeItem("hr_token");s.removeItem("hr_user")});const st=$("rememberMe")?.checked?localStorage:sessionStorage;st.setItem("hr_token",token);st.setItem("hr_user",JSON.stringify(me));showApp()}
 async function logout(){try{await api("/api/logout",{method:"POST"})}catch(e){}stopRollWatch();token="";me=null;[localStorage,sessionStorage].forEach(s=>{s.removeItem("hr_token");s.removeItem("hr_user")});clearInterval(messageTimer);$("appView").classList.add("hidden");$("authView").classList.remove("hidden");showLogin()}
@@ -17,6 +34,31 @@ async function requestReset(){try{const d=await api("/api/password-reset/request
 async function confirmReset(){try{const d=await api("/api/password-reset/confirm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:$("resetEmail").value,code:$("resetCode").value,new_password:$("resetNewPass").value})});toast(d.message);setTimeout(showLogin,800)}catch(e){toast(e.message)}}
 function vip(u){return u?.vip?`<span class="vip-badge">★ VIP</span>`:""}
 function previewMedia(input,boxId,nameId){const f=input.files?.[0],box=$(boxId);if(!f){box.innerHTML="";return}$(nameId).textContent=f.name;const url=URL.createObjectURL(f);box.innerHTML=f.type.startsWith("video/")?`<video src="${url}" controls muted></video>`:`<img src="${url}">`}
+
+function openVerifyModal(message=""){
+  if($("verifyText"))$("verifyText").textContent=message||"Bu işlemi yapmak için önce e-posta adresini doğrulaman gerekiyor.";
+  $("verifyModal")?.classList.remove("hidden");
+}
+function closeVerifyModal(){$("verifyModal")?.classList.add("hidden")}
+function backToVerifyEmail(){$("verifyCodeStep")?.classList.add("hidden");$("verifyEmailStep")?.classList.remove("hidden")}
+async function requestEmailVerification(){
+  try{
+    const d=await api("/api/email-verification/request",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:$("verifyEmail").value})});
+    toast(d.message);
+    if(d.already_verified){me.email_verified=true;closeVerifyModal();return}
+    $("verifyEmailStep").classList.add("hidden");$("verifyCodeStep").classList.remove("hidden");
+  }catch(e){toast(e.message)}
+}
+async function confirmEmailVerification(){
+  try{
+    const d=await api("/api/email-verification/confirm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:$("verifyCode").value})});
+    toast(d.message);me=d.user||me;me.email_verified=true;
+    const store=localStorage.getItem("hr_token")?localStorage:sessionStorage;
+    store.setItem("hr_user",JSON.stringify(me));
+    closeVerifyModal();$("verifyCode").value="";
+  }catch(e){toast(e.message)}
+}
+
 function buildNav(){const items=[["Ana Sayfa","homePage",loadFeed],["Harita","mapPage",loadRollMap],["Garaj","carsPage",loadVehicles],["Piyasa","peoplePage",loadPeople],["Teklifler","offersPage",loadOffers],["Etkinlik","eventsPage",loadEvents],["Ekipler","crewsPage",loadCrews],["Mesajlar","messagesPage",loadConversations],["Profilim","profilePage",()=>openProfile(me.id)]];if(me.role==="admin")items.push(["Yönetim","adminPage",loadAdmin]);$("nav").innerHTML="";items.forEach(([name,page,fn])=>{const b=document.createElement("button");b.textContent=name;b.onclick=()=>{showPage(page);fn?.()};$("nav").appendChild(b)})}
 function showPage(id){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));$(id).classList.remove("hidden")}
 async function showApp(){$("authView").classList.add("hidden");$("appView").classList.remove("hidden");buildNav();showPage("homePage");await loadVehicleCatalog();loadFeed();loadRollCount();loadNotifications();setInterval(loadRollCount,15000);setInterval(loadNotifications,20000)}
