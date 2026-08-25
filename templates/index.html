@@ -23,7 +23,7 @@
       <div class="brand-sub">GARAGE • STREET • COMMUNITY</div>
       <div id="loginBox">
         <input id="loginUser" placeholder="Kullanıcı adı" autocomplete="username">
-        <input id="loginPass" placeholder="Şifre" type="password" autocomplete="current-password">
+        <input id="loginPass" placeholder="Şifre" type="password" autocomplete="current-password"><label class="remember"><input id="rememberMe" type="checkbox" checked> Beni hatırla</label>
         <button class="cta" onclick="login()">MOTORU ÇALIŞTIR</button>
         <button class="ghost" onclick="showRegister()">YENİ HESAP OLUŞTUR</button>
       </div>
@@ -34,7 +34,7 @@
         <button class="cta" onclick="register()">HAKKARİ ROLL'A KATIL</button>
         <button class="ghost" onclick="showLogin()">GERİ</button>
       </div>
-    </div>
+    <div id="resetBox" class="hidden"><input id="resetEmail" placeholder="E-posta" type="email"><button class="primary" onclick="requestReset()">KOD GÖNDER</button><div id="resetConfirmArea" class="hidden"><input id="resetCode" placeholder="6 haneli kod"><input id="resetNewPass" placeholder="Yeni şifre" type="password"><button class="primary" onclick="confirmReset()">ŞİFREYİ YENİLE</button></div><button class="ghost" onclick="showLogin()">GERİ</button></div></div>
   </div>
 </section>
 
@@ -70,7 +70,7 @@
       <div class="composer panel">
         <textarea id="postBody" placeholder="Bugün Hakkari'de ne var?"></textarea>
         <div class="row">
-          <input id="postPhoto" type="file" accept="image/*">
+          <input id="postPhoto" class="native-file" type="file" accept="image/*,video/mp4,video/webm" onchange="previewMedia(this,'postPreview','postFileName')"><label for="postPhoto" class="file-card">📷🎬 <span><b>Fotoğraf / video ekle</b><small id="postFileName">Galeriden seç</small></span></label><div id="postPreview" class="media-preview"></div>
           <button class="cta mini" onclick="createPost()">PAYLAŞ</button>
         </div>
       </div>
@@ -103,7 +103,7 @@
         </div>
         <textarea id="carMods" placeholder="Modifiye / jant / egzoz / yazılım / süspansiyon (opsiyonel)"></textarea>
         <textarea id="carNote" placeholder="Araç hakkında kısa not"></textarea>
-        <input id="carPhoto" type="file" accept="image/*">
+        <input id="carPhoto" class="native-file" type="file" accept="image/*" onchange="previewMedia(this,'carPreview','carFileName')"><label for="carPhoto" class="file-card">🚘📷 <span><b>Araç fotoğrafı seç</b><small id="carFileName">Galeriden seç</small></span></label><div id="carPreview" class="media-preview"></div>
         <button class="cta" onclick="createVehicle()">GARAJA EKLE</button>
       </div>
       <div id="vehicles" class="car-grid"></div>
@@ -120,7 +120,7 @@
     </section>
 
     <section id="eventsPage" class="page hidden">
-      <div class="page-head"><h2>Piyasa / Etkinlikler</h2><button class="cta mini" onclick="createEvent()">+ OLUŞTUR</button></div>
+      <div class="page-head"><h2>Piyasa / Etkinlikler</h2><button class="cta mini" onclick="toggleEventForm()">+ OLUŞTUR</button></div><div id="eventForm" class="panel hidden"><div class="grid2"><input id="eventTitle" placeholder="Etkinlik adı"><input id="eventTime" type="datetime-local"><input id="eventMeeting" placeholder="Buluşma noktası"><input id="eventDesc" placeholder="Açıklama"></div><button class="cta" onclick="createEvent()">YAYINLA</button></div>
       <div id="events" class="stack"></div>
     </section>
 
@@ -137,7 +137,7 @@
     </section>
 
     <section id="profilePage" class="page hidden"><div id="profileBox"></div></section>
-    <section id="adminPage" class="page hidden"><h2>Yönetim</h2><div id="adminStats" class="stats"></div><h3>Şikâyetler</h3><div id="adminReports" class="stack"></div></section>
+    <section id="adminPage" class="page hidden"><div class="page-head"><h2>Admin Merkezi</h2><button onclick="loadAdmin()">YENİLE</button></div><div id="adminStats" class="stats"></div><div class="admin-tabs"><button onclick="adminTab('adminUsersBox')">HESAPLAR</button><button onclick="adminTab('adminCreateBox')">HESAP OLUŞTUR</button><button onclick="adminTab('adminReportsBox')">ŞİKÂYETLER</button><button onclick="adminTab('adminSettingsBox')">AYARLAR</button><button onclick="adminTab('adminAuditBox')">GEÇMİŞ</button></div><div id="adminUsersBox" class="adminbox"><input id="adminUserSearch" placeholder="Hesap ara..." oninput="renderAdminUsers()"><div id="adminUsers" class="stack"></div></div><div id="adminCreateBox" class="adminbox hidden"><div class="grid2"><input id="acuName" placeholder="Görünen ad"><input id="acuUser" placeholder="Kullanıcı adı"><input id="acuEmail" placeholder="E-posta"><input id="acuPass" placeholder="Şifre (boşsa otomatik)"><select id="acuRole"><option value="user">Normal kullanıcı</option><option value="admin">Admin</option></select><label class="check"><input id="acuVip" type="checkbox"> VIP</label></div><button class="cta" onclick="adminCreateUser()">HESABI OLUŞTUR</button></div><div id="adminReportsBox" class="adminbox hidden"><div id="adminReports" class="stack"></div></div><div id="adminSettingsBox" class="adminbox hidden"><div class="grid2"><select id="regMode"><option value="approval">Admin onaylı</option><option value="open">Açık kayıt</option><option value="closed">Kayıt kapalı</option></select><input id="regLimit" type="number" min="1" max="20" placeholder="IP kayıt limiti"></div><button class="cta" onclick="saveAdminSettings()">KAYDET</button></div><div id="adminAuditBox" class="adminbox hidden"><div id="adminAudit" class="stack"></div></div></section>
   </main>
 </section>
 
