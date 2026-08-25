@@ -1,21 +1,21 @@
-
 let token=localStorage.getItem("hr_token")||sessionStorage.getItem("hr_token")||"";
 let me=JSON.parse(localStorage.getItem("hr_user")||sessionStorage.getItem("hr_user")||"null");
 let activeConversation=null,messageTimer=null,rollWatchId=null,rollMap=null,rollMarkers=null,vehicleCatalog={};
 const $=id=>document.getElementById(id);
 async function api(path,opts={}){
   const headers=opts.headers||{};
-  if(token)headers.Authorization=`Bearer ${token}`;
+  if(token) headers.Authorization=`Bearer ${token}`;
   const res=await fetch(path,{...opts,headers});
-  let data={};try{data=await res.json()}catch(e){}
+  let data={};
+  try{data=await res.json()}catch(e){}
   if(!res.ok){
-    if(res.status===403&&data.code==="EMAIL_VERIFICATION_REQUIRED"){
+    if(res.status===403 && data.code==="EMAIL_VERIFICATION_REQUIRED"){
       openVerifyModal(data.message);
     }
     throw new Error(data.message||`Hata ${res.status}`);
   }
-  return data
-};if(token)headers.Authorization=`Bearer ${token}`;const res=await fetch(path,{...opts,headers});let data={};try{data=await res.json()}catch(e){}if(!res.ok)throw new Error(data.message||`Hata ${res.status}`);return data}
+  return data;
+}
 function toast(msg){$("toast").textContent=msg;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),3000)}
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function img(name,cls="avatar"){return name?`<img class="${cls}" src="/uploads/${encodeURIComponent(name)}">`:`<div class="${cls}"></div>`}
@@ -23,10 +23,21 @@ function hideAuth(){["loginBox","registerBox","resetBox"].forEach(x=>$(x)?.class
 function showRegister(){hideAuth();$("registerBox").classList.remove("hidden")}function showLogin(){hideAuth();$("loginBox").classList.remove("hidden")}function showReset(){hideAuth();$("resetBox").classList.remove("hidden")}
 async function register(){
   try{
-    const d=await api("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({display_name:$("regName").value,username:$("regUser").value,password:$("regPass").value})});
-    toast(d.message);finishAuth(d);
-  }catch(e){toast(e.message)}
-},body:JSON.stringify({display_name:$("regName").value,username:$("regUser").value,password:$("regPass").value})});toast(d.message);if(d.approved&&d.token)finishAuth(d);else setTimeout(showLogin,900)}catch(e){toast(e.message)}}
+    const d=await api("/api/register",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        display_name:$("regName").value,
+        username:$("regUser").value,
+        password:$("regPass").value
+      })
+    });
+    toast(d.message);
+    finishAuth(d);
+  }catch(e){
+    toast(e.message);
+  }
+}
 async function login(){try{const d=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});finishAuth(d)}catch(e){toast(e.message)}}
 function finishAuth(d){token=d.token;me=d.user;[localStorage,sessionStorage].forEach(s=>{s.removeItem("hr_token");s.removeItem("hr_user")});const st=$("rememberMe")?.checked?localStorage:sessionStorage;st.setItem("hr_token",token);st.setItem("hr_user",JSON.stringify(me));showApp()}
 async function logout(){try{await api("/api/logout",{method:"POST"})}catch(e){}stopRollWatch();token="";me=null;[localStorage,sessionStorage].forEach(s=>{s.removeItem("hr_token");s.removeItem("hr_user")});clearInterval(messageTimer);$("appView").classList.add("hidden");$("authView").classList.remove("hidden");showLogin()}
