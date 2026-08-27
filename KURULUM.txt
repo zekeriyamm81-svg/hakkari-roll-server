@@ -1,0 +1,30 @@
+HAKKARI ROLL - MVP
+
+Özellikler:
+- Kayıt / giriş
+- Profil + fotoğraf + biyografi
+- Araç garajı: marka, model, yıl, motor, yakıt, beygir, plaka gizle/göster, fotoğraf
+- Genel araç listesi ve arama
+- Fotoğraf/yazı paylaşımı
+- Beğeni ve yorum
+- Takip sistemi
+- Özel mesajlaşma
+- Şikâyet sistemi
+- Admin istatistik ve şikâyet paneli
+- Telefon ana ekranına eklenebilir PWA
+
+RAILWAY KURULUMU
+1. KAPSAM'DAN AYRI yeni GitHub repo aç: hakkari-roll-server
+2. Bu paketteki bütün dosya ve klasörleri repoya yükle.
+3. Railway -> New Project -> Deploy from GitHub -> hakkari-roll-server.
+4. Railway servisinde Volume oluşturup /data yoluna mount et.
+5. Variables:
+   HAKKARI_ROLL_DB_PATH=/data/hakkari_roll.db
+   HAKKARI_ROLL_UPLOAD_DIR=/data/uploads
+   HAKKARI_ROLL_ADMIN_USERNAME=admin
+   HAKKARI_ROLL_ADMIN_PASSWORD=GUCLU_BIR_SIFRE
+   HAKKARI_ROLL_PEPPER=UZUN_RASTGELE_BIR_DEGER
+6. Deploy tamamlanınca domain oluştur.
+7. Domaini telefondan aç ve test et.
+
+Not: Fotoğrafların deploy sonrası kaybolmaması için Railway Volume önemlidir.
