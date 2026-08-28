@@ -1,9 +1,0 @@
-HAKKARI ROLL V5.11 - SESLI ARAMA YETKI HOTFIX
-
-- Gelen arama artık CEVAPLA basılmadan WebRTC offer/answer işlemez.
-- Sunucu answer sinyalini yalnız callee + accepted durumunda kabul eder.
-- Arkadaş tanımı: karşılıklı takip. Yalnız karşılıklı takip eden kullanıcılar birbirini arayabilir.
-- Admin hesabını yalnız VIP kullanıcılar arayabilir; ayrıca karşılıklı takip şartı devam eder.
-- Profil, arama sonuçları ve sohbet başlığındaki arama düğmeleri can_call iznine göre gösterilir.
-- Arama başlatmadan önce permission endpoint kontrolü yapılır; izin yoksa mikrofon izni bile istenmez.
-- Kabul anında arkadaş/VIP yetkisi tekrar doğrulanır.
