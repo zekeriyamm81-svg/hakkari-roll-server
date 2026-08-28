@@ -1,0 +1,20 @@
+HAKKARI ROLL V5.13.1 — ACIL STABIL HOTFIX
+
+Bu sürüm V5.13 içerisindeki frontend regresyonunu geri alır.
+Temel: V5.12 çalışan arayüz + V5.11 arama yetkileri + mevcut TURN environment desteği.
+
+Korunanlar:
+- Profil/Garaj/admin V5.12 düzeltmeleri
+- Karşılıklı takip ile arama
+- Admini yalnız VIP + karşılıklı takip arayabilir
+- Gelen aramada manuel CEVAPLA zorunluluğu
+- Metered veya kendi Coturn sunucusu için HAKKARI_ROLL_TURN_URL / USERNAME / PASSWORD
+- turn-server klasöründe self-hosted Coturn kurulum dosyaları
+
+Bilinçli olarak geri alınan V5.13 frontend eklentileri:
+- Yeni arama geçmişi sekmesi
+- Yeni reconnect UI
+- Admin çağrı geçmişi frontend'i
+Bunlar stabil taban doğrulandıktan sonra ayrı ayrı yeniden eklenecek.
+
+Not: Veritabanını/Volume'u silme. Railway TURN variable'larını değiştirme.

@@ -1,0 +1,60 @@
+HAKKARİ ROLL V5.6 → V5.10 TOPLU GÜNCELLEME
+Tarih: 28.08.2026
+
+AŞAMA 6 — PROFİL / GARAJ MOBİL DÜZELTME
+- Profil içindeki Garaj sekmesinin üst bar altında kalıp takılmasına neden olan overflow/sticky çakışması giderildi.
+- Profil kartı ve Garaj paneli mobilde normal sayfa akışında büyüyor; ayrı ve kilitlenen nested-scroll oluşturmaz.
+- Sekme değişiminde mobil görünüm üst bar yüksekliğini dikkate alarak güvenli hizalanır.
+- Safe-area ve alt navigasyon boşlukları güçlendirildi.
+
+AŞAMA 7 — KULLANICILAR ARASI SESLİ ARAMA
+- Profilde SESLİ ARA butonu.
+- Mesaj sohbet başlığında telefon butonu.
+- Kullanıcı arama/keşfet sonuçlarında ARA butonu.
+- Gelen arama ekranı: CEVAPLA / REDDET.
+- Aktif arama ekranı: süre, mikrofon aç/kapat, karşı taraf sesini aç/kapat, bitir.
+- WebRTC kullanılır; ses dosyası Hakkari Roll veritabanına kaydedilmez.
+- Railway/Flask yalnızca çağrı durumu ve WebRTC offer/answer/ICE sinyallerini taşır.
+- Aynı hesabın eşzamanlı birden fazla aramada kalması engellenir.
+- Arama spam limiti ve sinyal boyut limiti eklendi.
+- Cevapsız aramalar yaklaşık 50 saniye sonra otomatik kapanır.
+- Tarayıcı/sayfa yenilenmesi sonrası hayalet arama durumları temizlenir.
+
+AŞAMA 8 — BİLDİRİM / PWA
+- Mobil bildirim merkezi uygulamanın en üst katmanına alındı.
+- KAPAT düğmesi viewport sağ üstüne sabitlendi; topbar/arama katmanı üstüne çıkamaz.
+- Bildirim merkezi açıldığında arkadaki topbar ve navigasyon etkileşimi devre dışı kalır.
+- Sistem bildirimi izin butonu eklendi.
+- Gelen sesli arama, izin verilmişse service worker üzerinden sistem bildirimi gösterebilir.
+- Bildirime dokunulduğunda açık Hakkari Roll penceresi öne getirilir.
+NOT: Uygulama tamamen kapalıyken gerçek sunucu push çağrısı için ayrıca Web Push/VAPID altyapısı gerekir; bu paket yanlış biçimde kapalı uygulamada tam push varmış gibi davranmaz.
+
+AŞAMA 9 — PERFORMANS / GÜVENLİK
+- Mesaj, bildirim, araç, Roll ve arama sinyali sorgularına indeksler eklendi.
+- SQLite busy_timeout eklendi.
+- X-Content-Type-Options, Referrer-Policy, Permissions-Policy ve X-Frame-Options başlıkları eklendi.
+- Mikrofon/konum/kamera izin politikası same-origin ile sınırlandı.
+- Başka kullanıcıların e-posta adresi public kullanıcı JSON'unda artık dönmez.
+- Eski çağrı sinyalleri temizlenir; anormal derecede uzun kalmış çağrı kayıtları sonsuza kadar kullanıcıyı meşgul etmez.
+
+AŞAMA 10 — SON MOBİL / MASAÜSTÜ QA
+- 360x800, 390x844 ve 430x932 mobil viewport senaryolarında profil Garaj genişliği ve bildirim KAPAT butonunun ekranda/topmost olması kontrol edildi.
+- İki kullanıcı backend çağrı yaşam döngüsü: oluştur -> poll -> signal -> kabul -> bitir test edildi.
+- Tarayıcı sahte WebRTC testi: giden aramada offer, gelen aramada answer akışı test edildi.
+- Yeni ve çok eski veritabanında admin login/migration tekrar test edildi.
+- Python ve JavaScript syntax kontrolleri yapıldı.
+
+SESLİ ARAMA İÇİN RAILWAY
+Varsayılan olarak Google STUN adresleri kullanılır. Aynı Wi-Fi ve birçok normal ağda yeterlidir.
+Üretimde özellikle mobil operatör/NAT ağlarında daha yüksek bağlantı başarısı için TURN önerilir.
+İsteğe bağlı Railway Variables:
+  HAKKARI_ROLL_TURN_URL=turn:TURN_SUNUCUN
+  HAKKARI_ROLL_TURN_USERNAME=KULLANICI
+  HAKKARI_ROLL_TURN_PASSWORD=SIFRE
+Birden fazla TURN URL varsa HAKKARI_ROLL_TURN_URL içinde virgülle ayrılabilir.
+
+ÖNEMLİ
+- Mevcut hakkari_roll.db veritabanını silmeyin.
+- Railway Volume'u koruyun.
+- Sesli arama için site HTTPS üzerinden açılmalıdır (Railway domaini HTTPS'tir).
+- İlk sesli aramada tarayıcı mikrofon izni ister.

@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#05070b">
+  <title>Hakkari Roll</title>
+  <link rel="icon" type="image/x-icon" href="/static/icons/favicon.ico?v=2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/favicon-192.png?v=2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/favicon-180.png?v=2">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/static/app.css?v=HRV53-20260828">
+</head>
+<body>
+<div id="pwaInstallBar" class="pwa-install hidden">
+  <div class="pwa-install-icon"><img src="/static/icons/icon.svg" alt="Hakkari Roll"></div>
+  <div class="pwa-install-copy"><b>Hakkari Roll'u telefona yükle</b><small id="pwaInstallHint">Tam ekran, uygulama gibi kullan.</small></div>
+  <button id="pwaInstallBtn" onclick="installPWA()">YÜKLE</button>
+  <button class="pwa-close" onclick="dismissPWA()">✕</button>
+</div>
+<div id="pwaIosHelp" class="modal hidden"><div class="modal-card pwa-help"><div class="drawer-head"><b>iPhone'a Yükle</b><button onclick="$('pwaIosHelp').classList.add('hidden')">✕</button></div><div class="pwa-steps"><div><strong>1</strong> Safari'de Paylaş düğmesine dokun.</div><div><strong>2</strong> “Ana Ekrana Ekle” seçeneğini seç.</div><div><strong>3</strong> “Ekle” de. Hakkari Roll ikon olarak ana ekrana gelir.</div></div></div></div>
+
+<div id="toast"></div>
+
+<section id="authView" class="auth-screen">
+  <div class="speed-lines"></div>
+  <div class="auth-wrap">
+    <div class="tach">
+      <div class="tach-ring"><div class="needle"></div><div class="tach-center"></div></div>
+    </div>
+    <div class="auth-card glass">
+      <div class="brand">HAKKARİ <span>ROLL</span></div>
+      <div class="brand-sub">GARAGE • STREET • COMMUNITY</div>
+      <div id="loginBox">
+        <input id="loginUser" placeholder="Kullanıcı adı" autocomplete="username">
+        <input id="loginPass" placeholder="Şifre" type="password" autocomplete="current-password"><label class="remember"><input id="rememberMe" type="checkbox" checked> Beni hatırla</label>
+        <button class="cta" onclick="login()">MOTORU ÇALIŞTIR</button>
+        <div class="auth-links">
+          <button class="linkbtn" onclick="showReset()">Şifremi unuttum?</button>
+          <button class="linkbtn" onclick="showRegister()">Yeni hesap oluştur</button>
+        </div>
+      </div>
+      <div id="registerBox" class="hidden"><div class="register-head"><b>Hesabını oluştur</b><small>Katılmadan önce tüm zorunlu metinleri sonuna kadar okuyup onaylaman gerekir.</small></div>
+<input id="regName" placeholder="Görünen ad"><input id="regUser" placeholder="Kullanıcı adı"><input id="regPass" placeholder="Şifre" type="password">
+<div class="agreement-list single-agreement-list">
+      <button type="button" class="agreement-row single-agreement-row" onclick="openAgreement()">
+        <span><b>Kullanım ve Güvenlik Kuralları</b><small>Trafik, topluluk, konum, gizlilik ve hesap kurallarının tamamı</small></span>
+        <em id="agreeMark-main">OKU</em>
+      </button>
+    </div>
+    <div id="agreementStatus" class="agreement-status">Kuralları sonuna kadar okuyup kabul etmelisin.</div>
+    <button id="registerSubmitBtn" class="cta" onclick="register()" disabled>HAKKARİ ROLL'A KATIL</button><button class="ghost" onclick="showLogin()">GERİ</button></div>
+      <div id="resetBox" class="hidden reset-box">
+        <div class="reset-head">
+          <div class="reset-icon">🔑</div>
+          <h2>Şifreni Yenile</h2>
+          <p>Hesabına kayıtlı e-posta adresine 6 haneli doğrulama kodu göndereceğiz.</p>
+        </div>
+        <input id="resetEmail" placeholder="E-posta adresin" type="email" autocomplete="email">
+        <button class="cta" onclick="requestReset()">KOD GÖNDER</button>
+        <div id="resetConfirmArea" class="hidden reset-confirm">
+          <div class="reset-divider"><span>KOD GELDİ Mİ?</span></div>
+          <input id="resetCode" inputmode="numeric" maxlength="6" placeholder="6 haneli kod">
+          <input id="resetNewPass" placeholder="Yeni şifre" type="password" autocomplete="new-password">
+          <button class="cta" onclick="confirmReset()">ŞİFREYİ YENİLE</button>
+        </div>
+        <button class="ghost" onclick="showLogin()">GİRİŞE DÖN</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="appView" class="hidden">
+  <header class="topbar v2-topbar v5-topbar">
+    <button id="mobileMenuBtn" class="v2-mobile-menu v5132-mobile-menu" type="button" onclick="toggleMobileMenu()" aria-label="Menüyü aç">☰</button>
+    <button class="v5-brand-button" type="button" onclick="showPage('homePage');loadFeed();loadV4Home()" aria-label="Ana Sayfa">
+      <span class="brand small v2-wordmark">HAKKARİ <span>ROLL</span><small>STREET COMMUNITY</small></span>
+    </button>
+    <div class="v2-top-center"><div class="live-pill" id="liveCount"><i></i> 0 ROLL AKTİF</div></div>
+    <div class="top-actions v5-top-actions">
+      <button class="icon-btn v2-icon-btn v5-search-btn" onclick="openExplore()" aria-label="Ara / Keşfet"><svg class="v5-top-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 5 5"></path></svg></button>
+      <button id="notifBtn" class="icon-btn v2-icon-btn v5-notif-btn" onclick="openNotifications()" aria-label="Bildirimler"><svg class="v5-top-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg><span id="notifCount"></span></button>
+      <button id="topProfileBtn" class="v5-profile-button" onclick="openProfile(me.id)" aria-label="Profilim"><span id="topProfileAvatar" class="v5-top-avatar"></span></button>
+      <button class="icon-btn danger logout-btn v2-icon-btn v5-desktop-logout" onclick="logout()" aria-label="Çıkış">↪</button>
+    </div>
+  </header>
+  <nav id="nav" class="nav v2-nav"></nav>
+  <aside id="mobileSideMenu" class="v5132-side-menu hidden" aria-label="Mobil menü"><div class="v5132-side-head"><div><b>HAKKARİ ROLL</b><small>MENÜ</small></div><button type="button" onclick="closeMobileMenu()">✕</button></div><div id="mobileSideMenuLinks" class="v5132-side-links"></div></aside><div class="v5132-menu-backdrop" onclick="closeMobileMenu()"></div>
+
+  <main class="content">
+    <section id="homePage" class="page">
+      <div class="hero-panel v2-hero">
+        <div class="v2-hero-copy">
+          <div class="eyebrow"><span class="v2-live-dot"></span> HAKKARİ'DE ŞU AN</div>
+          <h1>Şehrin otomobil<br><span>topluluğu burada.</span></h1>
+          <p>Garajını sergile, ekip kur, etkinliklere katıl ve Roll Radar ile topluluğu keşfet.</p>
+          <div class="v2-hero-stats"><span><b id="v2HeroLive">CANLI</b><small>Roll Radar</small></span><span><b>7/24</b><small>Topluluk</small></span><span><b>30</b><small>Hakkâri</small></span></div>
+        </div>
+        <div class="v2-hero-action"><div class="v2-radar-orb"><span>🚘</span></div><button id="rollToggleBtn" class="roll-btn" onclick="openRollPanel()">ROLL AKTİF ET <b>→</b></button><small>Konum yalnızca sen izin verdiğinde paylaşılır.</small></div>
+      </div>
+
+      <div class="quick-grid v2-quick-grid">
+        <button onclick="showPage('mapPage');loadRollMap()"><i>⌖</i><span><b>Canlı Harita</b><small>Roll Radar</small></span><em>›</em></button>
+        <button onclick="showPage('offersPage');loadOffers()"><i>⚡</i><span><b>Roll Teklifleri</b><small>Gelen / giden</small></span><em>›</em></button>
+        <button onclick="showPage('eventsPage');loadEvents()"><i>◉</i><span><b>Etkinlikler</b><small>Buluşmaları keşfet</small></span><em>›</em></button>
+        <button onclick="showPage('crewsPage');loadCrews()"><i>♟</i><span><b>Ekipler</b><small>Crew topluluğu</small></span><em>›</em></button>
+      </div>
+
+      <div id="announcementStrip" class="announcement-stack"></div>
+      <div class="stories-head"><b>HİKÂYELER</b><button class="story-add" onclick="createStory()">+ HİKÂYE</button></div>
+      <div id="stories" class="stories-rail"></div>
+      <div class="v4-grid"><div class="v4-card radar-card" onclick="showPage('mapPage');loadRollMap()"><span>📡</span><div><b id="radarCount">0 kişi</b><small>Roll Radar</small></div></div><div class="v4-card score-card"><span>🏁</span><div><b id="rollScore">0</b><small id="rollLevel">Çaylak</small></div></div></div>
+      <div id="weeklyCar" class="weekly-car"></div>
+      <div class="v2-section-heading"><div><span>TOPLULUK</span><h2>Akış</h2></div><small>Hakkâri otomobil dünyasından son paylaşımlar</small></div><div class="composer panel v2-composer">
+        <textarea id="postBody" placeholder="Bugün Hakkari'de ne var?"></textarea>
+        <div class="row">
+          <input id="postPhoto" class="native-file" type="file" accept="image/*,video/mp4,video/webm" onchange="previewMedia(this,'postPreview','postFileName')"><label for="postPhoto" class="file-card">📷🎬 <span><b>Fotoğraf / video ekle</b><small id="postFileName">Galeriden seç</small></span></label><div id="postPreview" class="media-preview"></div>
+          <button class="cta mini" onclick="createPost()">PAYLAŞ</button>
+        </div>
+      </div>
+      <div id="feed" class="stack"></div>
+    </section>
+
+    <section id="rollPage" class="page hidden v5-roll-page">
+      <div class="v5-page-intro">
+        <div><span class="v5-kicker">HAKKARİ ROLL</span><h2>Roll Radar</h2><p>Canlı topluluğu gör, piyasadakileri keşfet ve Roll tekliflerini tek merkezden yönet.</p></div>
+        <div class="v5-live-card"><i></i><strong id="v5RollCount">0</strong><span>ROLL AKTİF</span></div>
+      </div>
+      <div class="v5-roll-hero">
+        <div class="v5-radar-stage" aria-hidden="true"><span class="v5-radar-ring r1"></span><span class="v5-radar-ring r2"></span><span class="v5-radar-ring r3"></span><span class="v5-radar-car">🚘</span></div>
+        <div class="v5-roll-copy"><span class="v5-kicker">ROLL DURUMUN</span><h3 id="v5RollStatus">Şu an çevrimdışısın</h3><p>Konumunu yalnızca sen açtığında paylaşırız. Süre dolduğunda Roll otomatik kapanır.</p><button id="v5RollToggleBtn" class="cta v5-roll-main-btn" onclick="openRollPanel()">ROLL AKTİF ET <b>→</b></button></div>
+      </div>
+      <div class="v5-subsection-title"><div><span>ROLL MERKEZİ</span><h3>Ne yapmak istiyorsun?</h3></div></div>
+      <div class="v5-roll-grid">
+        <button onclick="showPage('mapPage');loadRollMap()"><i>⌖</i><span><b>Canlı Harita</b><small>Roll Radar'daki araçları gör</small></span><em>›</em></button>
+        <button onclick="showPage('offersPage');loadOffers()"><i>⚡</i><span><b>Roll Teklifleri</b><small>Gelen ve giden teklifler</small></span><em>›</em></button>
+        <button onclick="showPage('peoplePage');loadPeople()"><i>◎</i><span><b>Piyasadakiler</b><small>Kullanıcıları keşfet</small></span><em>›</em></button>
+        <button onclick="showPage('eventsPage');loadEvents()"><i>◉</i><span><b>Etkinlikler</b><small>Buluşma ve organizasyonlar</small></span><em>›</em></button>
+        <button onclick="showPage('crewsPage');loadCrews()"><i>♟</i><span><b>Crew / Ekipler</b><small>Topluluğunu bul veya kur</small></span><em>›</em></button>
+      </div>
+    </section>
+
+    <section id="mapPage" class="page hidden">
+      <div class="page-head"><h2>Canlı Hakkari Haritası</h2><button onclick="loadRollMap()">YENİLE</button></div>
+      <div class="map-shell"><button class="map-back-mobile" onclick="showPage('rollPage');loadRollHub()">← ROLL MERKEZİ</button><div id="rollMap"></div></div>
+      <div id="activeRollList" class="stack"></div>
+    </section>
+
+    <section id="carsPage" class="page hidden v5-garage-page">
+      <div class="v5-page-intro v5-garage-head">
+        <div><span class="v5-kicker">DİJİTAL GARAJ</span><h2>Garaj</h2><p>Araçlarını yönet veya Hakkâri topluluğundaki otomobilleri keşfet.</p></div>
+        <button id="garageAddBtn" class="cta v5-garage-add" onclick="toggleCarForm()">+ ARAÇ EKLE</button>
+      </div>
+      <div class="v5-tabs v5-garage-tabs"><button id="garageMineTab" class="active" onclick="setGarageMode('mine')">BENİM GARAJIM</button><button id="garageExploreTab" onclick="setGarageMode('explore')">KEŞFET</button></div>
+      <div id="garageExploreTools" class="v5-garage-tools hidden"><span>⌕</span><input id="carSearch" placeholder="Marka, model veya kullanıcı ara..." oninput="loadVehicles()"></div>
+      <div id="carForm" class="panel hidden">
+        <div class="selector-grid">
+          <label>Marka<select id="carBrand" onchange="catalogBrandChanged()"></select></label>
+          <label>Model<select id="carModel" onchange="catalogModelChanged()"></select></label>
+          <label>Yıl<select id="carYear"></select></label>
+          <label>Motor<select id="carEngine" onchange="catalogEngineChanged()"></select></label>
+          <label>Yakıt<select id="carFuel"><option>Benzin</option><option>Dizel</option><option>LPG</option><option>Hibrit</option><option>Elektrik</option></select></label>
+          <label>Şanzıman<select id="carTransmission"><option>Otomatik</option><option>Manuel</option><option>Yarı Otomatik</option></select></label>
+          <label>Kasa<select id="carBody"><option>Sedan</option><option>Hatchback</option><option>SUV</option><option>Coupe</option><option>Station Wagon</option><option>Pickup</option><option>Diğer</option></select></label>
+          <label>Çekiş<select id="carDrive"><option>Önden Çekiş</option><option>Arkadan İtiş</option><option>4x4 / AWD</option></select></label>
+          <label>Renk<input id="carColor" placeholder="Siyah"></label>
+          <label>Beygir<input id="carHp" placeholder="184"></label>
+          <label>Plaka<input id="carPlate" placeholder="30 ABC 123"></label>
+          <label class="check-line"><input id="carPlateVisible" type="checkbox"> Plaka herkese görünsün</label>
+        </div>
+        <textarea id="carMods" placeholder="Modifiye / jant / egzoz / yazılım / süspansiyon (opsiyonel)"></textarea>
+        <textarea id="carNote" placeholder="Araç hakkında kısa not"></textarea>
+        <input id="carPhoto" class="native-file" type="file" accept="image/*" onchange="previewMedia(this,'carPreview','carFileName')"><label for="carPhoto" class="file-card">🚘📷 <span><b>Araç fotoğrafı seç</b><small id="carFileName">Galeriden seç</small></span></label><div id="carPreview" class="media-preview"></div>
+        <button class="cta" onclick="createVehicle()">GARAJA EKLE</button>
+      </div>
+      <div id="vehicles" class="car-grid"></div>
+    </section>
+
+    <section id="peoplePage" class="page hidden v53-explore-page">
+      <div class="v5-page-intro v53-explore-head"><div><span class="v5-kicker">KEŞFET</span><h2>Ara & Keşfet</h2><p>Kullanıcı, araç, ekip ve etkinlikleri tek yerden bul.</p></div></div>
+      <div class="v53-global-search"><span>⌕</span><input id="peopleSearch" placeholder="Kullanıcı, araç, crew veya etkinlik ara..." oninput="queueGlobalSearch()" autocomplete="off"><button type="button" onclick="clearGlobalSearch()">✕</button></div>
+      <div class="v53-search-tabs" id="searchTabs"><button class="active" onclick="setSearchTab('all',this)">TÜMÜ</button><button onclick="setSearchTab('users',this)">KİŞİLER</button><button onclick="setSearchTab('vehicles',this)">ARAÇLAR</button><button onclick="setSearchTab('crews',this)">EKİPLER</button><button onclick="setSearchTab('events',this)">ETKİNLİKLER</button></div>
+      <div id="people" class="v53-search-results"></div>
+    </section>
+
+    <section id="offersPage" class="page hidden">
+      <div class="page-head"><h2>Roll & Piyasa Teklifleri</h2><button onclick="loadOffers()">YENİLE</button></div>
+      <div id="offers" class="stack"></div>
+    </section>
+
+    <section id="eventsPage" class="page hidden">
+      <div class="page-head"><h2>Piyasa / Etkinlikler</h2><button class="cta mini" onclick="toggleEventForm()">+ OLUŞTUR</button></div><div id="eventForm" class="panel hidden event-create-form">
+        <div class="event-form-head">
+          <div><div class="eyebrow">YENİ ETKİNLİK</div><h3>Piyasa / Buluşma Oluştur</h3></div>
+          <button type="button" class="ghost mini" onclick="toggleEventForm()">✕</button>
+        </div>
+        <div class="grid2">
+          <label>Etkinlik adı<input id="eventTitle" placeholder="Örn: Gece Roll Buluşması" maxlength="120" required></label>
+          <label>Tarih ve saat<input id="eventTime" type="datetime-local" required></label>
+          <label>Buluşma noktası<input id="eventMeeting" placeholder="Örn: Hakkâri merkez" maxlength="200"></label>
+          <label>Açıklama<input id="eventDesc" placeholder="Kısa açıklama" maxlength="800"></label>
+        </div>
+        <button id="eventPublishBtn" type="button" class="cta event-publish-btn" onclick="window.hrCreateEvent(); return false;">ETKİNLİĞİ YAYINLA</button><div id="eventPublishStatus" class="meta" style="margin-top:8px"></div>
+      </div>
+      <div id="events" class="stack"></div>
+    </section>
+
+    <section id="crewsPage" class="page hidden">
+      <div class="page-head"><h2>Ekipler / Crew</h2><button class="cta mini" onclick="createCrew()">+ EKİP KUR</button></div>
+      <div id="crews" class="stack"></div>
+    </section>
+
+    <section id="messagesPage" class="page hidden v5-messages-page">
+      <div class="v5-page-intro v5-messages-head"><div><span class="v5-kicker">TOPLULUK</span><h2>Mesajlar</h2><p>Roll arkadaşlarınla ve topluluk üyeleriyle konuş.</p></div><button class="v53-new-message" onclick="openExplore()">＋ YENİ MESAJ</button></div>
+      <div class="messages-layout v5-messages-layout">
+        <div class="v5-conversations-pane"><div class="v5-conversation-search"><span>⌕</span><input id="conversationSearch" placeholder="Mesajlarda ara..." oninput="renderConversations()"></div><div class="v5-message-tabs"><button class="active" type="button" onclick="showAllConversations(this)">TÜMÜ</button><button type="button" onclick="filterUnreadConversations(this)">OKUNMAMIŞ</button></div><div id="conversations" class="stack compact"></div></div>
+        <div id="chatPanel" class="chat-panel v5-chat-panel"><div class="chat-title v5-chat-title"><button id="chatBackMobile" class="v53-chat-back" onclick="closeMobileChat()" aria-label="Konuşmalara dön">‹</button><span id="chatPeerAvatar" class="v55-chat-avatar"></span><span class="v53-chat-heading"><b id="chatTitle">Bir sohbet seç</b><small id="chatPresence">Mesajlaşmak için bir konuşma seç</small></span><button id="chatCallBtn" class="v610-chat-call hidden" onclick="startVoiceCallFromConversation()" aria-label="Sesli ara" title="Sesli ara">📞</button></div><div id="chatMessages" class="chat-messages"><div class="v53-chat-empty">Bir konuşma seçerek mesajlaşmaya başla.</div></div><div class="chat-send v5-chat-send"><div class="v55-composer-wrap"><input id="chatInput" placeholder="Mesaj yaz..." oninput="messageTypingChanged()" onblur="stopMessageTyping()" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"><small id="composerTyping" class="v55-composer-typing hidden"></small></div><button class="cta" onclick="sendMessage()" aria-label="Gönder">➤</button></div></div>
+      </div>
+    </section>
+
+    <section id="profilePage" class="page hidden"><div id="profileBox"></div></section>
+    <section id="adminPage" class="page hidden v512-admin-page"><div class="page-head"><div><span class="v5-kicker">YÖNETİM</span><h2>Admin Merkezi</h2></div><button onclick="loadAdmin()">YENİLE</button></div><div id="adminStats" class="stats v512-admin-stats"></div><div class="admin-tabs v512-admin-tabs"><button onclick="adminTab('adminUsersBox')">HESAPLAR</button><button onclick="adminTab('adminVehiclesBox')">🚘 ARAÇLAR</button><button onclick="adminTab('adminCreateBox')">HESAP OLUŞTUR</button><button onclick="adminTab('adminReportsBox')">ŞİKÂYETLER</button><button onclick="adminTab('adminSettingsBox')">AYARLAR</button><button onclick="adminTab('adminAuditBox')">GEÇMİŞ</button><button onclick="adminTab('adminAnnouncementsBox')">DUYURU</button><button onclick="adminTab('adminWeeklyBox')">🏆 HAFTANIN EN İYİLERİ</button><button onclick="adminTab('adminSystemBox')">⚙ SİSTEM</button></div><div id="adminUsersBox" class="adminbox"><input id="adminUserSearch" placeholder="Hesap ara..." oninput="renderAdminUsers()"><div id="adminUsers" class="stack"></div></div><div id="adminVehiclesBox" class="adminbox hidden"><div class="v512-admin-tools"><div><h3>🚘 Tüm Araçlar</h3><p class="meta">Admin tüm araçları görüntüleyebilir, düzenleyebilir, fotoğraflarını yönetebilir veya aracı silebilir.</p></div><input id="adminVehicleSearch" placeholder="Marka, model, plaka veya kullanıcı ara..." oninput="queueAdminVehicleSearch()"></div><div id="adminVehicles" class="v512-admin-vehicles"></div></div><div id="adminCreateBox" class="adminbox hidden"><div class="grid2"><input id="acuName" placeholder="Görünen ad"><input id="acuUser" placeholder="Kullanıcı adı"><input id="acuEmail" placeholder="E-posta"><input id="acuPass" placeholder="Şifre (boşsa otomatik)"><select id="acuRole"><option value="user">Normal kullanıcı</option><option value="admin">Admin</option></select><label class="check"><input id="acuVip" type="checkbox"> VIP</label></div><button class="cta" onclick="adminCreateUser()">HESABI OLUŞTUR</button></div><div id="adminReportsBox" class="adminbox hidden"><div id="adminReports" class="stack"></div></div><div id="adminSettingsBox" class="adminbox hidden"><div class="grid2"><select id="regMode"><option value="approval">Admin onaylı</option><option value="open">Açık kayıt</option><option value="closed">Kayıt kapalı</option></select><input id="regLimit" type="number" min="1" max="20" placeholder="IP kayıt limiti"></div><button class="cta" onclick="saveAdminSettings()">KAYDET</button></div><div id="adminAuditBox" class="adminbox hidden"><div id="adminAudit" class="stack"></div></div><div id="adminAnnouncementsBox" class="adminbox hidden"><h3>📢 Duyuru Yayınla</h3><input id="annTitle" placeholder="Başlık"><textarea id="annBody" placeholder="Duyuru"></textarea><input id="annHours" type="number" value="24" min="1" max="720"><button class="cta" onclick="adminAnnouncement()">YAYINLA</button><div class="admin-subhead">YAYINDA / GEÇMİŞ DUYURULAR</div><div id="adminAnnouncementList" class="stack"></div></div><div id="adminWeeklyBox" class="adminbox hidden"><h3>🏆 Haftanın En İyileri</h3><p class="meta">ID gerekmez. Kullanıcı adı, görünen ad, marka, model veya plaka ile ara ve listeden seç.</p>
+<div class="weekly-admin-picker">
+<label>Haftanın Arabası<input id="weeklyCarSearch" placeholder="Marka, model, plaka veya kullanıcı ara..." oninput="renderWeeklyCarChoices()"></label>
+<div id="weeklyCarChoices" class="weekly-choice-list"></div>
+<label>Haftanın Kullanıcısı<input id="weeklyUserSearch" placeholder="Kullanıcı adı veya isim ara..." oninput="renderWeeklyUserChoices()"></label>
+<div id="weeklyUserChoices" class="weekly-choice-list"></div>
+</div></div><div id="adminSystemBox" class="adminbox hidden"><h3>⚙ Sistem Sağlığı</h3><p class="meta">Veritabanı ve oturum şeması kontrolü. Sorun olduğunda burada temel tanı bilgisi gösterilir.</p><button onclick="loadAdminDiagnostics()">SİSTEMİ KONTROL ET</button><div id="adminDiagnostics" class="stack v512-diagnostics"></div></div></section>
+  </main>
+</section>
+
+
+<div id="appDialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle">
+  <div class="modal-card app-dialog-card">
+    <div class="drawer-head">
+      <div>
+        <div class="eyebrow">HAKKARİ ROLL</div>
+        <h2 id="appDialogTitle">İşlem</h2>
+      </div>
+      <button id="appDialogX" class="dialog-x" type="button" onclick="cancelAppDialog()">✕</button>
+    </div>
+    <p id="appDialogMessage" class="app-dialog-message hidden"></p>
+    <div id="appDialogFields" class="app-dialog-fields"></div>
+    <div class="app-dialog-actions">
+      <button id="appDialogCancel" class="ghost" type="button" onclick="cancelAppDialog()">VAZGEÇ</button>
+      <button id="appDialogConfirm" class="cta" type="button" onclick="submitAppDialog()">DEVAM</button>
+    </div>
+  </div>
+</div>
+
+<div id="profileEditModal" class="modal hidden"><div class="modal-card"><div class="drawer-head"><h2>Profili Düzenle</h2><button onclick="closeProfileEdit()">✕</button></div><label>Görünen ad<input id="editDisplayName" maxlength="80"></label><label>Biyografi<textarea id="editBio" maxlength="500" placeholder="Kendinden bahset..."></textarea></label><div class="row"><button class="cta" onclick="saveProfileEdit()">KAYDET</button><button class="ghost" onclick="closeProfileEdit()">VAZGEÇ</button></div></div></div>
+<div id="crewCreateModal" class="modal hidden"><div class="modal-card"><div class="drawer-head"><h2>Yeni Ekip Kur</h2><button onclick="closeCrewCreate()">✕</button></div><label>Ekip adı<input id="crewName" maxlength="80"></label><label>Açıklama<textarea id="crewDescription" maxlength="500"></textarea></label><button class="cta" onclick="saveCrewCreate()">EKİBİ KUR</button></div></div>
+<div id="crewChatModal" class="modal hidden"><div class="modal-card crew-chat-card"><div class="drawer-head"><h2 id="crewChatTitle">Ekip Sohbeti</h2><button onclick="closeCrewChat()">✕</button></div><div id="crewChatMessages" class="chat-messages"></div><div class="chat-send"><input id="crewChatInput" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter')sendCrewMessage()"><button class="cta" onclick="sendCrewMessage()">GÖNDER</button></div></div></div>
+
+<div id="vehicleDetailModal" class="modal hidden v52-sheet-modal v512-vehicle-modal" onclick="if(event.target===this)closeVehicleDetail()">
+  <button type="button" class="v512-modal-close-fixed" onclick="closeVehicleDetail()" aria-label="Araç panelini kapat">✕</button>
+  <div class="modal-card v52-vehicle-sheet">
+    <div class="v52-sheet-handle"></div>
+    <div id="vehicleDetailContent"></div>
+  </div>
+</div>
+
+<div id="rollUserSheet" class="modal hidden v52-sheet-modal v512-roll-user-modal" onclick="if(event.target===this)closeRollUserSheet()">
+  <button type="button" class="v512-modal-close-fixed" onclick="closeRollUserSheet()" aria-label="Paneli kapat">✕</button>
+  <div class="modal-card v52-roll-user-sheet">
+    <div class="v52-sheet-handle"></div>
+    <div id="rollUserSheetContent"></div>
+  </div>
+</div>
+
+<div id="rollModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>🟢 Roll Aktif</h2>
+    <p>Konum paylaşımı isteğe bağlıdır ve seçtiğin süre sonunda otomatik kapanır.</p>
+    <label>Durum<select id="rollStatus"><option>Piyasadayım</option><option>Roll arıyorum</option><option>Geziyorum</option><option>Buluşmaya gidiyorum</option></select></label>
+    <label>Süre<select id="rollMinutes"><option value="30">30 dakika</option><option value="60" selected>1 saat</option><option value="180">3 saat</option><option value="360">6 saat</option></select></label>
+    <label>Konum<select id="rollVisibility"><option value="approx" selected>Yaklaşık konum</option><option value="exact">Tam konum</option></select></label>
+    <div id="rollActionState" class="v5132-roll-state">İlk açılışta cihaz konumu alınır.</div><div class="row"><button id="rollSaveBtn" class="cta" onclick="activateRoll()">AKTİF ET</button><button onclick="deactivateRoll()">KAPAT</button><button class="ghost" onclick="closeRollPanel()">VAZGEÇ</button></div>
+  </div>
+</div>
+
+
+<div id="verifyModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>✉️ E-posta Doğrulaması</h2>
+    <p id="verifyText">Bu işlemi yapmak için önce e-posta adresini doğrulaman gerekiyor.</p>
+    <div id="verifyEmailStep">
+      <input id="verifyEmail" type="email" placeholder="E-posta adresin">
+      <button class="cta" onclick="requestEmailVerification()">KOD GÖNDER</button>
+    </div>
+    <div id="verifyCodeStep" class="hidden">
+      <input id="verifyCode" inputmode="numeric" maxlength="6" placeholder="6 haneli kod">
+      <button class="cta" onclick="confirmEmailVerification()">DOĞRULA</button>
+      <button class="ghost" onclick="backToVerifyEmail()">E-POSTAYI DEĞİŞTİR</button>
+    </div>
+    <button class="ghost" onclick="closeVerifyModal()">ŞİMDİLİK KAPAT</button>
+  </div>
+</div>
+
+<div id="storyModal" class="modal hidden"><div class="modal-card story-viewer"><div class="drawer-head"><b id="storyOwner">Hikâye</b><button onclick="closeStory()">✕</button></div><div id="storyContent"></div></div></div>
+<div id="messageActionsModal" class="modal hidden v55-message-actions" onclick="if(event.target===this)closeMessageActions()"><div class="modal-card v55-message-actions-card"><div class="v55-message-action-handle"></div><h3>Mesaj işlemleri</h3><button id="deleteForMeBtn" onclick="deleteSelectedMessage('me')">Benden sil</button><button id="deleteForEveryoneBtn" class="danger" onclick="deleteSelectedMessage('everyone')">Herkesten sil</button><button class="ghost" onclick="closeMessageActions()">Vazgeç</button></div></div>
+<div id="notificationsDrawer" class="drawer hidden v53-notif-drawer" role="dialog" aria-modal="true" aria-label="Bildirim merkezi"><button type="button" class="v53-notif-close v610-notif-close" onclick="closeNotifications()" aria-label="Bildirimleri kapat">✕ <span>KAPAT</span></button><div class="drawer-head v53-notif-head"><div><span class="v5-kicker">HAKKARİ ROLL</span><h3>Bildirimler</h3></div><button id="enableNotifBtn" type="button" class="v610-enable-notif" onclick="enableAppNotifications()">🔔 BİLDİRİM İZNİ</button></div><div id="notifications" class="stack v53-notification-list"></div><button class="v53-notif-bottom-close" onclick="closeNotifications()">BİLDİRİM MERKEZİNİ KAPAT ✕</button></div>
+<div id="voiceCallOverlay" class="v610-call-overlay hidden" role="dialog" aria-modal="true" aria-label="Sesli arama">
+  <div class="v610-call-card">
+    <div class="v610-call-brand">HAKKARİ ROLL <span>VOICE</span></div>
+    <div id="voiceCallAvatar" class="v610-call-avatar">HR</div>
+    <h2 id="voiceCallName">Sesli Arama</h2>
+    <div id="voiceCallHandle" class="v610-call-handle"></div>
+    <p id="voiceCallStatus">Hazırlanıyor…</p>
+    <strong id="voiceCallTimer" class="v610-call-timer">00:00</strong>
+    <div id="voiceIncomingActions" class="v610-call-actions incoming hidden"><button class="v610-decline" onclick="declineVoiceCall()"><span>✕</span>REDDET</button><button class="v610-accept" onclick="acceptVoiceCall()"><span>☎</span>CEVAPLA</button></div>
+    <div id="voiceActiveActions" class="v610-call-actions active hidden"><button id="voiceMuteBtn" onclick="toggleVoiceMute()"><span>🎙</span>MİKROFON</button><button id="voiceAudioBtn" onclick="toggleRemoteAudio()"><span>🔊</span>SES</button><button class="v610-end" onclick="endVoiceCall()"><span>☎</span>BİTİR</button></div>
+    <small id="voiceCallHint" class="v610-call-hint">Ses yalnızca aramadaki iki cihaz arasında WebRTC ile aktarılır.</small>
+  </div>
+  <audio id="voiceRemoteAudio" autoplay playsinline></audio>
+</div>
+
+<div id="agreementModal" class="modal hidden"><div class="modal-card agreement-card"><div class="agreement-modal-head"><div><span>KAYIT SÖZLEŞMESİ</span><h2 id="agreementTitle"></h2></div><button onclick="closeAgreement()">×</button></div><div id="agreementScroll" class="agreement-scroll" onscroll="agreementScrolled()"><div id="agreementText"></div><div class="agreement-end">— METNİN SONU —</div></div><div class="agreement-foot"><small id="agreementHint">Metnin sonuna kadar kaydır.</small><button id="agreementAccept" class="cta" disabled onclick="acceptAgreement()">OKUDUM VE KABUL EDİYORUM</button></div></div></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/app.js?v=HRV5132-ROLLNAV-20260828"></script>
+</body>
+</html>
