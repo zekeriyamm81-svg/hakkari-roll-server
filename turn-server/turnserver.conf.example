@@ -1,0 +1,13 @@
+listening-port=3478
+fingerprint
+lt-cred-mech
+realm=turn.hakkariroll.local
+user=hakkariroll:GUCLU_SIFRE
+external-ip=SUNUCU_PUBLIC_IP
+min-port=49152
+max-port=65535
+stale-nonce=600
+no-multicast-peers
+no-cli
+no-tls
+no-dtls
