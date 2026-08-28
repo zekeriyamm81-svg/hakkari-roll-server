@@ -1,9 +1,0 @@
-HAKKARI ROLL V5.13.2 — ROLL/NAV/ROOT STABILITY
-
-- Ana / route Jinja yerine doğrudan index.html servis eder; root index fallback eklendi.
-- Mobil sol hamburger menü geri eklendi; 4 alt ana sekme korunur.
-- Roll zaten aktifken durum/süre/Tam-Yaklaşık değişimi GPS beklemeden /api/roll/settings ile kaydedilir.
-- İlk Roll aktivasyonu önce cached/düşük hassasiyetli hızlı konum (3.5 sn), gerekirse yüksek hassasiyet fallback (7 sn) kullanır.
-- Arka plan Roll konum güncellemeleri throttle edildi (25 sn / anlamlı hareket) ve yaklaşık konumda highAccuracy kapatıldı.
-- Eski DB roll_presence kolonları tam migration ile garanti edilir.
-- Service worker/cache sürümü yenilendi.
