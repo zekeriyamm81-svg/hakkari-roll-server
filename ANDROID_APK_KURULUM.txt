@@ -1,0 +1,18 @@
+HAKKARI ROLL ANDROID APK
+=======================
+
+Paket adı: com.hakkariroll.app
+Uygulama adı: Hakkari Roll
+Açılan adres: https://hakkariroll.com.tr/
+
+Bu Android kabuğu:
+- Hakkari Roll web uygulamasını tam ekran açar.
+- Konum iznini Roll Radar için WebView'e aktarır.
+- Mikrofon iznini WebRTC sesli aramalar için WebView'e aktarır.
+- Dosya/fotoğraf seçimini destekler.
+- Kullanıcı oturumlarını WebView cookie/localStorage ile korur.
+- Hakkari Roll iç bağlantılarını uygulama içinde, dış bağlantıları tarayıcıda açar.
+- APK içinde PWA kurulum kartını gizler.
+
+İlk oluşturulan APK debug imzalı test sürümüdür. Telefonunda APK kurulumuna izin vererek kurulabilir.
+Kalıcı dağıtım için daha sonra özel release signing key oluşturulması önerilir.
