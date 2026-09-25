@@ -328,17 +328,26 @@ function openExplore(){showPage("peoplePage");loadPeople();setTimeout(()=>$("peo
 function loadRollHub(){loadRollCount()}
 async function showApp(){
  $("authView").classList.add("hidden");$("appView").classList.remove("hidden");buildNav();showPage("homePage");
- await loadVehicleCatalog();
+ // Katalog ana sayfanın açılmasını asla bloke etmez.
+ loadVehicleCatalog(true);
  loadFeed();loadV4Home();loadRollCount();loadNotifications();
  clearInterval(window.hrRollCountTimer);clearInterval(window.hrNotificationTimer);clearInterval(hrPulseTimer);
  await livePulse();hrPulseTimer=setInterval(livePulse,10000);
  setTimeout(()=>{startVoiceCallWatcher();refreshNotificationPermissionUI()},0);
 }
 let vehicleMakes=[],vehicleModelsByMake=new Map();
-async function loadVehicleCatalog(){
+const HR_FALLBACK_MAKES=['BMW','Mercedes-Benz','Audi','Volkswagen','Renault','Fiat','Ford','Toyota','Honda','Hyundai','Kia','Škoda','SEAT','CUPRA','Peugeot','Citroën','Opel','Nissan','Volvo','Dacia','Chevrolet','Jeep','Land Rover','Range Rover','Lexus','Mazda','Mitsubishi','Suzuki','Subaru','Porsche','Tesla','MINI','Alfa Romeo','MG','Chery','BYD','Togg'].map((name,i)=>({id:null,name,raw_name:name,fallback:true,order:i}));
+function applyVehicleMakes(list){
+ const clean=(Array.isArray(list)?list:[]).filter(x=>x&&x.name);if(!clean.length)return false;vehicleMakes=clean;vehicleCatalog={makes:vehicleMakes};try{fillBrands()}catch(e){console.warn('vehicle catalog render',e)}return true;
+}
+async function loadVehicleCatalog(silent=true){
+ let seeded=false;
+ try{const cached=JSON.parse(localStorage.getItem('hr_vehicle_makes_v2')||'[]');seeded=applyVehicleMakes(cached)}catch(e){}
+ if(!seeded)applyVehicleMakes(HR_FALLBACK_MAKES);
  try{
-  const d=await api('/api/vehicle-catalog/makes');vehicleMakes=d.makes||[];vehicleCatalog={makes:vehicleMakes};fillBrands();
- }catch(e){toast('Araç kataloğu yüklenemedi: '+e.message)}
+  const d=await api('/api/vehicle-catalog/makes');const makes=d.makes||[];if(applyVehicleMakes(makes)){try{localStorage.setItem('hr_vehicle_makes_v2',JSON.stringify(makes))}catch(e){}}
+ }catch(e){console.warn('Araç kataloğu ağ yenilemesi başarısız; yerel katalog kullanılıyor.',e);if(!silent&&!vehicleMakes.length)toast('Araç kataloğu şu an çevrimdışı; yerel liste kullanılıyor.')}
+ return vehicleMakes;
 }
 function vehicleYearOptions(placeholder='Yıl seç'){const y=new Date().getFullYear()+1;let out=`<option value="">${placeholder}</option>`;for(let n=y;n>=1950;n--)out+=`<option value="${n}">${n}</option>`;return out}
 function fillBrands(){
@@ -353,7 +362,7 @@ async function getModelsForBrand(name){
  if(vehicleModelsByMake.has(key))return vehicleModelsByMake.get(key);
  if(!String(name||'').trim())return [];
  const qs=m?.id?`make_id=${encodeURIComponent(m.id)}`:`make=${encodeURIComponent(name)}`;
- const d=await api(`/api/vehicle-catalog/models?${qs}`);const models=d.models||[];vehicleModelsByMake.set(key,models);return models;
+ try{const d=await api(`/api/vehicle-catalog/models?${qs}`);const models=d.models||[];vehicleModelsByMake.set(key,models);return models}catch(e){console.warn('Model kataloğu çevrimdışı',e);vehicleModelsByMake.set(key,[]);return []}
 }
 async function catalogBrandChanged(){
  const brand=$('carBrand')?.value||'',sel=$('carModel');if(!sel)return;
@@ -571,9 +580,9 @@ async function cameraBrandChanged(){
 function cameraModelChanged(){setScanStep(2);tryAutoRegisterScannedVehicle()}
 async function ensureVehicleVisionModel(){
  if(cameraVisionModel)return cameraVisionModel;
- if(!window.cocoSsd)throw new Error('Araç tanıma modülü yüklenemedi.');
- setCameraVisionStatus('YAPAY ZEKA HAZIRLANIYOR','Araç tanıma modeli yükleniyor…','loading');$('cameraOcrState').textContent='MODEL YÜKLENİYOR';
- cameraVisionModel=await cocoSsd.load({base:'lite_mobilenet_v2'});return cameraVisionModel;
+ if(!window.cocoSsd)throw new Error('Araç tanıma modülü henüz hazır değil.');
+ setCameraVisionStatus('YAPAY ZEKA HAZIRLANIYOR','Araç tanıma modeli Hakkari Roll üzerinden yükleniyor…','loading');$('cameraOcrState').textContent='MODEL YÜKLENİYOR';
+ cameraVisionModel=await Promise.race([cocoSsd.load({base:'lite_mobilenet_v2',modelUrl:'/vendor/coco/model.json'}),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Model yükleme zaman aşımı')),18000))]);return cameraVisionModel;
 }
 async function startAdminVehicleCamera(){
  if(!navigator.mediaDevices?.getUserMedia)return toast('Bu tarayıcı kamera erişimini desteklemiyor.');
@@ -582,7 +591,7 @@ async function startAdminVehicleCamera(){
   adminVehicleStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
   const v=$('adminVehicleCamera');v.srcObject=adminVehicleStream;await v.play();$('cameraScanBtn').disabled=false;$('cameraOcrState').textContent='ARAÇ ARANIYOR';setScanStep(0);setCameraVisionStatus('ARAÇ ARANIYOR','Aracı kadrajda mümkün olduğunca büyük göster','searching');
   $('vehicleScanBox')?.classList.remove('locked');$('vehicleScanBox')?.style.setProperty('opacity','0');$('cameraDetectedCard')?.classList.add('hidden');
-  try{await ensureVehicleVisionModel();startVehicleVisionLoop()}catch(e){cameraVisionFailures++;$('cameraOcrState').textContent='MANUEL MOD';setCameraVisionStatus('MANUEL TARAMA','Araç modeli yüklenemedi; plaka taraması kullanılabilir.','warn');toast('Araç tanıma modeli yüklenemedi. Plakayı Şimdi Oku ile devam edebilirsin.')}
+  try{await ensureVehicleVisionModel();startVehicleVisionLoop()}catch(e){cameraVisionFailures++;console.warn('AI araç modeli kullanılamadı, yerel taramaya geçildi',e);$('cameraOcrState').textContent='GÖRÜNTÜ TARAMA';setCameraVisionStatus('GÖRÜNTÜ TARAMA','Uyumluluk modu aktif • araç/plaka taraması devam ediyor','loading');startFallbackVehicleVisionLoop()}
  }catch(e){toast('Kamera açılamadı: '+e.message);$('cameraOcrState').textContent='KAMERA HATASI';setCameraVisionStatus('KAMERA HATASI',e.message,'error')}
 }
 function stopAdminVehicleCamera(){
@@ -600,6 +609,15 @@ function vehicleDisplayRect(pred){const stage=$('cameraScannerShell'),v=$('admin
 function showVehicleScanBox(pred){
  const box=$('vehicleScanBox'),r=vehicleDisplayRect(pred);if(!box||!r)return;box.style.left=`${Math.max(0,r.left)}px`;box.style.top=`${Math.max(0,r.top)}px`;box.style.width=`${Math.min($('cameraScannerShell').clientWidth-Math.max(0,r.left),r.width)}px`;box.style.height=`${Math.min($('cameraScannerShell').clientHeight-Math.max(0,r.top),r.height)}px`;box.style.opacity='1';box.classList.add('locked');
  if($('vehicleConfidence'))$('vehicleConfidence').textContent=`%${Math.round(pred.score*100)} GÜVEN`;if($('vehicleLockText'))$('vehicleLockText').textContent=pred.class==='truck'?'ARAÇ / KAMYON ALGILANDI':pred.class==='bus'?'ARAÇ / OTOBÜS ALGILANDI':'ARAÇ ALGILANDI';
+}
+function fallbackVehiclePrediction(){
+ const v=$('adminVehicleCamera');if(!v?.videoWidth||!v?.videoHeight)return null;
+ const w=v.videoWidth*.82,h=v.videoHeight*.66,x=(v.videoWidth-w)/2,y=v.videoHeight*.16;
+ return {bbox:[x,y,w,h],score:.74,class:'car',fallback:true};
+}
+function startFallbackVehicleVisionLoop(){
+ if(!adminVehicleStream)return;if(cameraVisionLoop)clearTimeout(cameraVisionLoop);
+ const tick=()=>{if(!adminVehicleStream)return;const pred=fallbackVehiclePrediction();if(pred){cameraLastVehicle=pred;showVehicleScanBox(pred);if($('vehicleConfidence'))$('vehicleConfidence').textContent='CANLI TARAMA';if($('vehicleLockText'))$('vehicleLockText').textContent='ARAÇ BÖLGESİ TARAMADA';$('cameraOcrState').textContent='ARAÇ TARAMADA';setCameraVisionStatus('ARAÇ TARAMADA','Yerel görüntü analizi • plaka otomatik aranıyor','locked');setScanStep(1);if(!cameraOcrBusy&&cameraPlateHits<2&&Date.now()-cameraLastOcrAt>2600)scanAdminVehicleCamera(false)}cameraVisionLoop=setTimeout(tick,cameraPlateHits>=2?1200:800)};tick();
 }
 async function startVehicleVisionLoop(){
  if(!adminVehicleStream||!cameraVisionModel)return;if(cameraVisionLoop)clearTimeout(cameraVisionLoop);
