@@ -11,9 +11,15 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/favicon-180.png?v=2">
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="/static/app.css?v=HRV514-20260828">
+  <link rel="stylesheet" href="/static/app.css?v=HRV5140-20260925">
 </head>
 <body>
+<div id="pwaInstallBar" class="pwa-install hidden">
+  <div class="pwa-install-icon"><img src="/static/icons/icon.svg" alt="Hakkari Roll"></div>
+  <div class="pwa-install-copy"><b>Hakkari Roll'u telefona yükle</b><small id="pwaInstallHint">Tam ekran, uygulama gibi kullan.</small></div>
+  <button id="pwaInstallBtn" onclick="installPWA()">YÜKLE</button>
+  <button class="pwa-close" onclick="dismissPWA()">✕</button>
+</div>
 <div id="pwaIosHelp" class="modal hidden"><div class="modal-card pwa-help"><div class="drawer-head"><b>iPhone'a Yükle</b><button onclick="$('pwaIosHelp').classList.add('hidden')">✕</button></div><div class="pwa-steps"><div><strong>1</strong> Safari'de Paylaş düğmesine dokun.</div><div><strong>2</strong> “Ana Ekrana Ekle” seçeneğini seç.</div><div><strong>3</strong> “Ekle” de. Hakkari Roll ikon olarak ana ekrana gelir.</div></div></div></div>
 
 <div id="toast"></div>
@@ -68,7 +74,7 @@
 
 <section id="appView" class="hidden">
   <header class="topbar v2-topbar v5-topbar">
-    <button id="mobileMenuBtn" class="v2-mobile-menu v5132-mobile-menu" type="button" onclick="toggleMobileMenu()" aria-label="Menüyü aç">☰</button>
+    <button id="mobileMenuBtn" class="hr-mobile-menu-btn" type="button" onclick="toggleMobileMenu()" aria-label="Menüyü aç" aria-expanded="false"><span></span><span></span><span></span></button>
     <button class="v5-brand-button" type="button" onclick="showPage('homePage');loadFeed();loadV4Home()" aria-label="Ana Sayfa">
       <span class="brand small v2-wordmark">HAKKARİ <span>ROLL</span><small>STREET COMMUNITY</small></span>
     </button>
@@ -81,10 +87,8 @@
     </div>
   </header>
   <nav id="nav" class="nav v2-nav"></nav>
-  <aside id="mobileSideMenu" class="v5132-side-menu v514-classic-menu hidden" aria-label="Mobil menü">
-    <div class="v5132-side-head v514-menu-head"><div><b>HAKKARİ <span>ROLL</span></b><small>STREET COMMUNITY</small></div><button type="button" onclick="closeMobileMenu()" aria-label="Menüyü kapat">✕</button></div>
-    <div id="mobileSideMenuLinks" class="v5132-side-links v514-menu-links"></div>
-  </aside><div class="v5132-menu-backdrop v514-menu-backdrop" onclick="closeMobileMenu()"></div>
+  <div id="mobileMenuBackdrop" class="hr-mobile-menu-backdrop" onclick="toggleMobileMenu(false)"></div>
+  <aside id="mobileSideMenu" class="hr-mobile-side-menu" aria-hidden="true"></aside>
 
   <main class="content">
     <section id="homePage" class="page">
@@ -97,17 +101,6 @@
         </div>
         <div class="v2-hero-action"><div class="v2-radar-orb"><span>🚘</span></div><button id="rollToggleBtn" class="roll-btn" onclick="openRollPanel()">ROLL AKTİF ET <b>→</b></button><small>Konum yalnızca sen izin verdiğinde paylaşılır.</small></div>
       </div>
-
-      <section id="pwaHomeCard" class="v514-install-card hidden" aria-label="Hakkari Roll uygulamasını telefona kur">
-        <button class="v514-install-dismiss" type="button" onclick="dismissPWA()" aria-label="Kurulum kartını kapat">✕</button>
-        <div class="v514-install-icon"><img src="/static/icons/icon.svg" alt=""></div>
-        <div class="v514-install-copy"><span>UYGULAMA GİBİ KULLAN</span><h3>Hakkari Roll'u telefona kur</h3><p>Tarayıcı çubuğu olmadan tam ekran açılır ve ana ekranında Hakkari Roll ikonu olur.</p></div>
-        <div class="v514-install-actions">
-          <button id="pwaAndroidBtn" class="cta" type="button" onclick="installPWA()">ANDROID'E YÜKLE</button>
-          <button class="ghost" type="button" onclick="showIOSInstallHelp()">iPHONE'A EKLE</button>
-        </div>
-        <div class="v514-install-notes"><small><b>Android:</b> Yükle düğmesine dokun.</small><small><b>iPhone:</b> Safari → Paylaş → Ana Ekrana Ekle.</small></div>
-      </section>
 
       <div class="quick-grid v2-quick-grid">
         <button onclick="showPage('mapPage');loadRollMap()"><i>⌖</i><span><b>Canlı Harita</b><small>Roll Radar</small></span><em>›</em></button>
@@ -164,18 +157,18 @@
       <div class="v5-tabs v5-garage-tabs"><button id="garageMineTab" class="active" onclick="setGarageMode('mine')">BENİM GARAJIM</button><button id="garageExploreTab" onclick="setGarageMode('explore')">KEŞFET</button></div>
       <div id="garageExploreTools" class="v5-garage-tools hidden"><span>⌕</span><input id="carSearch" placeholder="Marka, model veya kullanıcı ara..." oninput="loadVehicles()"></div>
       <div id="carForm" class="panel hidden">
-        <div class="selector-grid">
-          <label>Marka<select id="carBrand" onchange="catalogBrandChanged()"></select></label>
-          <label>Model<select id="carModel" onchange="catalogModelChanged()"></select></label>
-          <label>Yıl<select id="carYear"></select></label>
-          <label>Motor<select id="carEngine" onchange="catalogEngineChanged()"></select></label>
-          <label>Yakıt<select id="carFuel"><option>Benzin</option><option>Dizel</option><option>LPG</option><option>Hibrit</option><option>Elektrik</option></select></label>
-          <label>Şanzıman<select id="carTransmission"><option>Otomatik</option><option>Manuel</option><option>Yarı Otomatik</option></select></label>
-          <label>Kasa<select id="carBody"><option>Sedan</option><option>Hatchback</option><option>SUV</option><option>Coupe</option><option>Station Wagon</option><option>Pickup</option><option>Diğer</option></select></label>
-          <label>Çekiş<select id="carDrive"><option>Önden Çekiş</option><option>Arkadan İtiş</option><option>4x4 / AWD</option></select></label>
-          <label>Renk<input id="carColor" placeholder="Siyah"></label>
-          <label>Beygir<input id="carHp" placeholder="184"></label>
-          <label>Plaka<input id="carPlate" placeholder="30 ABC 123"></label>
+        <div class="selector-grid hr-vehicle-select-grid">
+          <label>Marka<select id="carBrand" onchange="catalogBrandChanged()"><option value="">Marka seç</option></select></label>
+          <label>Model<select id="carModel" onchange="catalogModelChanged()" disabled><option value="">Önce marka seç</option></select></label>
+          <label>Yıl<select id="carYear"><option value="">Yıl seç</option></select></label>
+          <label>Motor<input id="carEngine" placeholder="Opsiyonel: 2.0 TDI / Elektrik"></label>
+          <label>Yakıt<select id="carFuel"><option value="">Yakıt seç</option><option>Benzin</option><option>Dizel</option><option>LPG</option><option>Hibrit</option><option>Elektrik</option></select></label>
+          <label>Şanzıman<select id="carTransmission"><option value="">Şanzıman seç</option><option>Otomatik</option><option>Manuel</option><option>Yarı Otomatik</option></select></label>
+          <label>Kasa<select id="carBody"><option value="">Kasa tipi seç</option><option>Sedan</option><option>Hatchback</option><option>SUV</option><option>Coupe</option><option>Station Wagon</option><option>Pickup</option><option>Van</option><option>Diğer</option></select></label>
+          <label>Çekiş<select id="carDrive"><option value="">Çekiş seç</option><option>Önden Çekiş</option><option>Arkadan İtiş</option><option>4x4 / AWD</option></select></label>
+          <label>Renk<select id="carColor"><option value="">Renk seç</option><option>Siyah</option><option>Beyaz</option><option>Gri</option><option>Gümüş</option><option>Kırmızı</option><option>Mavi</option><option>Yeşil</option><option>Sarı</option><option>Turuncu</option><option>Kahverengi</option><option>Bej</option><option>Mor</option><option>Diğer</option></select></label>
+          <label>Beygir<input id="carHp" inputmode="numeric" placeholder="Opsiyonel: 184"></label>
+          <label>Plaka<input id="carPlate" placeholder="30 ABC 123" oninput="this.value=formatTurkishPlate(this.value)"></label>
           <label class="check-line"><input id="carPlateVisible" type="checkbox"> Plaka herkese görünsün</label>
         </div>
         <textarea id="carMods" placeholder="Modifiye / jant / egzoz / yazılım / süspansiyon (opsiyonel)"></textarea>
@@ -229,13 +222,54 @@
     </section>
 
     <section id="profilePage" class="page hidden"><div id="profileBox"></div></section>
-    <section id="adminPage" class="page hidden v512-admin-page"><div class="page-head"><div><span class="v5-kicker">YÖNETİM</span><h2>Admin Merkezi</h2></div><button onclick="loadAdmin()">YENİLE</button></div><div id="adminStats" class="stats v512-admin-stats"></div><div class="admin-tabs v512-admin-tabs"><button onclick="adminTab('adminUsersBox')">HESAPLAR</button><button onclick="adminTab('adminVehiclesBox')">🚘 ARAÇLAR</button><button onclick="adminTab('adminCreateBox')">HESAP OLUŞTUR</button><button onclick="adminTab('adminReportsBox')">ŞİKÂYETLER</button><button onclick="adminTab('adminSettingsBox')">AYARLAR</button><button onclick="adminTab('adminAuditBox')">GEÇMİŞ</button><button onclick="adminTab('adminAnnouncementsBox')">DUYURU</button><button onclick="adminTab('adminWeeklyBox')">🏆 HAFTANIN EN İYİLERİ</button><button onclick="adminTab('adminSystemBox')">⚙ SİSTEM</button></div><div id="adminUsersBox" class="adminbox"><input id="adminUserSearch" placeholder="Hesap ara..." oninput="renderAdminUsers()"><div id="adminUsers" class="stack"></div></div><div id="adminVehiclesBox" class="adminbox hidden"><div class="v512-admin-tools"><div><h3>🚘 Tüm Araçlar</h3><p class="meta">Admin tüm araçları görüntüleyebilir, düzenleyebilir, fotoğraflarını yönetebilir veya aracı silebilir.</p></div><input id="adminVehicleSearch" placeholder="Marka, model, plaka veya kullanıcı ara..." oninput="queueAdminVehicleSearch()"></div><div id="adminVehicles" class="v512-admin-vehicles"></div></div><div id="adminCreateBox" class="adminbox hidden"><div class="grid2"><input id="acuName" placeholder="Görünen ad"><input id="acuUser" placeholder="Kullanıcı adı"><input id="acuEmail" placeholder="E-posta"><input id="acuPass" placeholder="Şifre (boşsa otomatik)"><select id="acuRole"><option value="user">Normal kullanıcı</option><option value="admin">Admin</option></select><label class="check"><input id="acuVip" type="checkbox"> VIP</label></div><button class="cta" onclick="adminCreateUser()">HESABI OLUŞTUR</button></div><div id="adminReportsBox" class="adminbox hidden"><div id="adminReports" class="stack"></div></div><div id="adminSettingsBox" class="adminbox hidden"><div class="grid2"><select id="regMode"><option value="approval">Admin onaylı</option><option value="open">Açık kayıt</option><option value="closed">Kayıt kapalı</option></select><input id="regLimit" type="number" min="1" max="20" placeholder="IP kayıt limiti"></div><button class="cta" onclick="saveAdminSettings()">KAYDET</button></div><div id="adminAuditBox" class="adminbox hidden"><div id="adminAudit" class="stack"></div></div><div id="adminAnnouncementsBox" class="adminbox hidden"><h3>📢 Duyuru Yayınla</h3><input id="annTitle" placeholder="Başlık"><textarea id="annBody" placeholder="Duyuru"></textarea><input id="annHours" type="number" value="24" min="1" max="720"><button class="cta" onclick="adminAnnouncement()">YAYINLA</button><div class="admin-subhead">YAYINDA / GEÇMİŞ DUYURULAR</div><div id="adminAnnouncementList" class="stack"></div></div><div id="adminWeeklyBox" class="adminbox hidden"><h3>🏆 Haftanın En İyileri</h3><p class="meta">ID gerekmez. Kullanıcı adı, görünen ad, marka, model veya plaka ile ara ve listeden seç.</p>
+    <section id="adminPage" class="page hidden"><div class="page-head"><h2>Admin Merkezi</h2><button onclick="loadAdmin()">YENİLE</button></div><div id="adminStats" class="stats"></div><div class="admin-tabs"><button onclick="adminTab('adminUsersBox')">HESAPLAR</button><button onclick="adminTab('adminCreateBox')">HESAP OLUŞTUR</button><button onclick="adminTab('adminCameraBox')">📷 KAMERA KAYIT</button><button onclick="adminTab('adminReportsBox')">ŞİKÂYETLER</button><button onclick="adminTab('adminSettingsBox')">AYARLAR</button><button onclick="adminTab('adminAuditBox')">GEÇMİŞ</button><button onclick="adminTab('adminAnnouncementsBox')">DUYURU</button><button onclick="adminTab('adminWeeklyBox')">🏆 HAFTANIN EN İYİLERİ</button></div><div id="adminUsersBox" class="adminbox"><input id="adminUserSearch" placeholder="Hesap ara..." oninput="renderAdminUsers()"><div id="adminUsers" class="stack"></div></div><div id="adminCreateBox" class="adminbox hidden"><div class="grid2"><input id="acuName" placeholder="Görünen ad"><input id="acuUser" placeholder="Kullanıcı adı"><input id="acuEmail" placeholder="E-posta"><input id="acuPass" placeholder="Şifre (boşsa otomatik)"><select id="acuRole"><option value="user">Normal kullanıcı</option><option value="admin">Admin</option></select><label class="check"><input id="acuVip" type="checkbox"> VIP</label></div><button class="cta" onclick="adminCreateUser()">HESABI OLUŞTUR</button></div><div id="adminCameraBox" class="adminbox hidden hr-camera-admin">
+  <div class="hr-camera-head"><div><span class="v5-kicker">SMART SCAN</span><h3>Akıllı Araç Tarama</h3><p>Kamerayı araca doğrult. Sistem aracı canlı algılar, gövdeyi kilitler, plaka bölgesini otomatik tarar ve fotoğrafı hazırlar.</p></div><span id="cameraOcrState" class="hr-scan-state">HAZIR</span></div>
+  <div id="cameraScannerShell" class="hr-camera-stage">
+    <video id="adminVehicleCamera" playsinline muted></video>
+    <canvas id="adminVehicleCanvas" class="hidden"></canvas>
+    <div class="hr-scan-hud" aria-hidden="true"><span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span><div class="hr-hud-center"><i></i><b>VEHICLE VISION</b></div></div>
+    <div id="vehicleScanBox" class="hr-vehicle-scan-box">
+      <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+      <div class="hr-scan-mesh"></div><div class="hr-scan-beam"></div>
+      <div class="hr-vehicle-lock-label"><i></i><b id="vehicleLockText">ARAÇ ALGILANDI</b><small id="vehicleConfidence"></small></div>
+      <div id="plateTargetBox" class="hr-plate-target"><span>PLAKA BÖLGESİ</span></div>
+    </div>
+    <div id="cameraFlash" class="hr-camera-flash"></div>
+    <div class="hr-camera-statusbar"><span id="cameraVisionDot"></span><b id="cameraVisionText">KAMERA BEKLİYOR</b><small id="cameraVisionSub">Tarama başlatılmadı</small></div>
+  </div>
+  <div class="hr-scan-progress">
+    <div id="scanStepVehicle" class="active"><i>1</i><span>Araç</span></div><em></em>
+    <div id="scanStepPlate"><i>2</i><span>Plaka</span></div><em></em>
+    <div id="scanStepInfo"><i>3</i><span>Bilgi</span></div><em></em>
+    <div id="scanStepSave"><i>4</i><span>Kayıt</span></div>
+  </div>
+  <div class="hr-camera-actions">
+    <button class="cta" id="cameraStartBtn" onclick="startAdminVehicleCamera()">TARAMAYI BAŞLAT</button>
+    <button id="cameraScanBtn" onclick="scanAdminVehicleCamera(true)" disabled>PLAKAYI ŞİMDİ OKU</button>
+    <button onclick="stopAdminVehicleCamera()">KAMERAYI KAPAT</button>
+  </div>
+  <div id="cameraDetectedCard" class="hr-detected-card hidden"><div class="hr-detected-check">✓</div><div><small>PLAKA TANINDI</small><strong id="cameraDetectedPlate">—</strong><span id="cameraDetectedHint">Araç bilgilerini seç, kayıt otomatik tamamlansın.</span></div></div>
+  <div class="hr-camera-result">
+    <label>Plaka<input id="cameraPlate" inputmode="text" autocomplete="off" placeholder="30 ABC 123" oninput="normalizeCameraPlateField()"></label>
+    <label>Marka<select id="cameraBrand" onchange="cameraBrandChanged()"><option value="">Marka seç</option></select></label>
+    <label>Model<select id="cameraModel" onchange="cameraModelChanged()" disabled><option value="">Önce marka seç</option></select></label>
+    <label>Yıl<select id="cameraYear"><option value="">Yıl seç (opsiyonel)</option></select></label>
+    <div id="cameraBrandPreview" class="hr-camera-brand-preview"></div>
+  </div>
+  <label class="hr-auto-save"><input id="cameraAutoSave" type="checkbox" checked><span><b>Otomatik kayıt</b><small>Plaka doğrulanıp marka/model seçildiğinde araç + hesap otomatik kaydedilir.</small></span></label>
+  <div class="hr-brand-chips">
+    <button onclick="setCameraBrand('BMW')">BMW</button><button onclick="setCameraBrand('Mercedes-Benz')">Mercedes</button><button onclick="setCameraBrand('Audi')">Audi</button><button onclick="setCameraBrand('Volkswagen')">Volkswagen</button><button onclick="setCameraBrand('Renault')">Renault</button><button onclick="setCameraBrand('Fiat')">Fiat</button><button onclick="setCameraBrand('Ford')">Ford</button><button onclick="setCameraBrand('Toyota')">Toyota</button><button onclick="setCameraBrand('Honda')">Honda</button><button onclick="setCameraBrand('Škoda')">Škoda</button>
+  </div>
+  <div id="cameraOcrRaw" class="hr-ocr-raw"></div>
+  <button class="cta hr-register-btn" id="cameraRegisterBtn" onclick="registerScannedVehicle()">✓ ARAÇ + HESAP KAYDET</button>
+  <div id="cameraLastResult" class="hr-camera-last hidden"></div>
+</div><div id="adminReportsBox" class="adminbox hidden"><div id="adminReports" class="stack"></div></div><div id="adminSettingsBox" class="adminbox hidden"><div class="grid2"><select id="regMode"><option value="approval">Admin onaylı</option><option value="open">Açık kayıt</option><option value="closed">Kayıt kapalı</option></select><input id="regLimit" type="number" min="1" max="20" placeholder="IP kayıt limiti"></div><button class="cta" onclick="saveAdminSettings()">KAYDET</button></div><div id="adminAuditBox" class="adminbox hidden"><div id="adminAudit" class="stack"></div></div><div id="adminAnnouncementsBox" class="adminbox hidden"><h3>📢 Duyuru Yayınla</h3><input id="annTitle" placeholder="Başlık"><textarea id="annBody" placeholder="Duyuru"></textarea><input id="annHours" type="number" value="24" min="1" max="720"><button class="cta" onclick="adminAnnouncement()">YAYINLA</button><div class="admin-subhead">YAYINDA / GEÇMİŞ DUYURULAR</div><div id="adminAnnouncementList" class="stack"></div></div><div id="adminWeeklyBox" class="adminbox hidden"><h3>🏆 Haftanın En İyileri</h3><p class="meta">ID gerekmez. Kullanıcı adı, görünen ad, marka, model veya plaka ile ara ve listeden seç.</p>
 <div class="weekly-admin-picker">
 <label>Haftanın Arabası<input id="weeklyCarSearch" placeholder="Marka, model, plaka veya kullanıcı ara..." oninput="renderWeeklyCarChoices()"></label>
 <div id="weeklyCarChoices" class="weekly-choice-list"></div>
 <label>Haftanın Kullanıcısı<input id="weeklyUserSearch" placeholder="Kullanıcı adı veya isim ara..." oninput="renderWeeklyUserChoices()"></label>
 <div id="weeklyUserChoices" class="weekly-choice-list"></div>
-</div></div><div id="adminSystemBox" class="adminbox hidden"><h3>⚙ Sistem Sağlığı</h3><p class="meta">Veritabanı ve oturum şeması kontrolü. Sorun olduğunda burada temel tanı bilgisi gösterilir.</p><button onclick="loadAdminDiagnostics()">SİSTEMİ KONTROL ET</button><div id="adminDiagnostics" class="stack v512-diagnostics"></div></div></section>
+</div></div></section>
   </main>
 </section>
 
@@ -262,16 +296,14 @@
 <div id="crewCreateModal" class="modal hidden"><div class="modal-card"><div class="drawer-head"><h2>Yeni Ekip Kur</h2><button onclick="closeCrewCreate()">✕</button></div><label>Ekip adı<input id="crewName" maxlength="80"></label><label>Açıklama<textarea id="crewDescription" maxlength="500"></textarea></label><button class="cta" onclick="saveCrewCreate()">EKİBİ KUR</button></div></div>
 <div id="crewChatModal" class="modal hidden"><div class="modal-card crew-chat-card"><div class="drawer-head"><h2 id="crewChatTitle">Ekip Sohbeti</h2><button onclick="closeCrewChat()">✕</button></div><div id="crewChatMessages" class="chat-messages"></div><div class="chat-send"><input id="crewChatInput" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter')sendCrewMessage()"><button class="cta" onclick="sendCrewMessage()">GÖNDER</button></div></div></div>
 
-<div id="vehicleDetailModal" class="modal hidden v52-sheet-modal v512-vehicle-modal" onclick="if(event.target===this)closeVehicleDetail()">
-  <button type="button" class="v512-modal-close-fixed" onclick="closeVehicleDetail()" aria-label="Araç panelini kapat">✕</button>
+<div id="vehicleDetailModal" class="modal hidden v52-sheet-modal" onclick="if(event.target===this)closeVehicleDetail()">
   <div class="modal-card v52-vehicle-sheet">
     <div class="v52-sheet-handle"></div>
     <div id="vehicleDetailContent"></div>
   </div>
 </div>
 
-<div id="rollUserSheet" class="modal hidden v52-sheet-modal v512-roll-user-modal" onclick="if(event.target===this)closeRollUserSheet()">
-  <button type="button" class="v512-modal-close-fixed" onclick="closeRollUserSheet()" aria-label="Paneli kapat">✕</button>
+<div id="rollUserSheet" class="modal hidden v52-sheet-modal" onclick="if(event.target===this)closeRollUserSheet()">
   <div class="modal-card v52-roll-user-sheet">
     <div class="v52-sheet-handle"></div>
     <div id="rollUserSheetContent"></div>
@@ -285,7 +317,7 @@
     <label>Durum<select id="rollStatus"><option>Piyasadayım</option><option>Roll arıyorum</option><option>Geziyorum</option><option>Buluşmaya gidiyorum</option></select></label>
     <label>Süre<select id="rollMinutes"><option value="30">30 dakika</option><option value="60" selected>1 saat</option><option value="180">3 saat</option><option value="360">6 saat</option></select></label>
     <label>Konum<select id="rollVisibility"><option value="approx" selected>Yaklaşık konum</option><option value="exact">Tam konum</option></select></label>
-    <div id="rollActionState" class="v5132-roll-state">İlk açılışta cihaz konumu alınır.</div><div class="row"><button id="rollSaveBtn" class="cta" onclick="activateRoll()">AKTİF ET</button><button onclick="deactivateRoll()">KAPAT</button><button class="ghost" onclick="closeRollPanel()">VAZGEÇ</button></div>
+    <div class="row"><button class="cta" onclick="activateRoll()">AKTİF ET</button><button onclick="deactivateRoll()">KAPAT</button><button class="ghost" onclick="closeRollPanel()">VAZGEÇ</button></div>
   </div>
 </div>
 
@@ -326,6 +358,9 @@
 </div>
 
 <div id="agreementModal" class="modal hidden"><div class="modal-card agreement-card"><div class="agreement-modal-head"><div><span>KAYIT SÖZLEŞMESİ</span><h2 id="agreementTitle"></h2></div><button onclick="closeAgreement()">×</button></div><div id="agreementScroll" class="agreement-scroll" onscroll="agreementScrolled()"><div id="agreementText"></div><div class="agreement-end">— METNİN SONU —</div></div><div class="agreement-foot"><small id="agreementHint">Metnin sonuna kadar kaydır.</small><button id="agreementAccept" class="cta" disabled onclick="acceptAgreement()">OKUDUM VE KABUL EDİYORUM</button></div></div></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/static/app.js?v=HRV514-20260828"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="/static/app.js?v=HRV5140-20260925"></script>
 </body>
 </html>
