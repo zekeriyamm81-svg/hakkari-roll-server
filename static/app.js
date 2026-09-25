@@ -264,7 +264,7 @@ function v5NavIcon(name){
 function toggleMobileMenu(force){
  const open=typeof force==='boolean'?force:!document.body.classList.contains('hr-menu-open');
  document.body.classList.toggle('hr-menu-open',open);
- const panel=$('mobileSideMenu'),btn=$('mobileMenuBtn');if(panel)panel.setAttribute('aria-hidden',open?'false':'true');if(btn)btn.setAttribute('aria-expanded',open?'true':'false');
+ const panel=$('mobileSideMenu'),btn=$('mobileMenuBtn');if(panel)panel.setAttribute('aria-hidden',open?'false':'true');if(btn){btn.setAttribute('aria-expanded',open?'true':'false');btn.setAttribute('aria-label',open?'Menüyü kapat':'Menüyü aç');btn.textContent=open?'✕':'☰';}
 }
 function mobileMenuGo(page,action){toggleMobileMenu(false);showPage(page);if(typeof action==='function')action()}
 function buildMobileSideMenu(){
