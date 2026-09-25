@@ -1,4 +1,4 @@
-const CACHE="hakkari-roll-v514-uiinstall-20260828";
+const CACHE="hakkari-roll-v5141-smartscan-20260925";
 const CORE=["/","/static/manifest.json","/static/icons/icon.svg"];
 
 self.addEventListener("install",e=>{
@@ -20,6 +20,8 @@ self.addEventListener("fetch",e=>{
   if(
     u.pathname.startsWith("/api/") ||
     u.pathname.startsWith("/uploads/") ||
+    u.pathname.startsWith("/vendor/") ||
+    u.pathname==="/" ||
     u.pathname==="/static/app.js" ||
     u.pathname==="/static/app.css" ||
     u.pathname==="/service-worker.js" ||
