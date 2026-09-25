@@ -11,7 +11,40 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/favicon-180.png?v=2">
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="/static/app.css?v=HRV5141-20260925">
+  <link rel="stylesheet" href="/static/app.css?v=HRV5142-20260925">
+  <style id="hr-mobile-menu-critical">
+  @media (max-width:900px){
+    #appView:not(.hidden) #mobileMenuBtn{
+      display:grid!important;place-items:center!important;position:fixed!important;
+      left:max(10px,env(safe-area-inset-left))!important;
+      top:calc(env(safe-area-inset-top) + 9px)!important;
+      z-index:2147483000!important;width:44px!important;height:44px!important;
+      min-width:44px!important;min-height:44px!important;padding:0!important;margin:0!important;
+      border:1px solid #3a4656!important;border-radius:13px!important;
+      background:#101722!important;color:#fff!important;font-size:25px!important;
+      line-height:1!important;font-weight:500!important;box-shadow:0 8px 28px #000b!important;
+      visibility:visible!important;opacity:1!important;pointer-events:auto!important;
+    }
+    #appView:not(.hidden) .v5-topbar{padding-left:64px!important}
+    #mobileMenuBackdrop{
+      display:block!important;position:fixed!important;inset:0!important;z-index:2147482000!important;
+      background:#020407c7!important;backdrop-filter:blur(5px)!important;
+      opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:.2s!important;
+    }
+    #mobileSideMenu{
+      display:flex!important;position:fixed!important;left:0!important;top:0!important;bottom:0!important;
+      width:min(330px,88vw)!important;max-width:88vw!important;z-index:2147482500!important;
+      flex-direction:column!important;overflow:auto!important;
+      padding:calc(14px + env(safe-area-inset-top)) 12px calc(14px + env(safe-area-inset-bottom))!important;
+      background:linear-gradient(160deg,#0d131c,#070b10 70%)!important;
+      border-right:1px solid #2b3744!important;box-shadow:32px 0 80px #000d!important;
+      transform:translateX(-105%)!important;visibility:hidden!important;transition:.24s ease!important;
+    }
+    body.hr-menu-open #mobileMenuBackdrop{opacity:1!important;visibility:visible!important;pointer-events:auto!important}
+    body.hr-menu-open #mobileSideMenu{transform:translateX(0)!important;visibility:visible!important}
+    body.hr-menu-open #mobileMenuBtn{color:#ff7a45!important;background:#17110f!important;border-color:#6b3826!important}
+  }
+  </style>
 </head>
 <body>
 <div id="pwaInstallBar" class="pwa-install hidden">
@@ -74,7 +107,7 @@
 
 <section id="appView" class="hidden">
   <header class="topbar v2-topbar v5-topbar">
-    <button id="mobileMenuBtn" class="hr-mobile-menu-btn" type="button" onclick="toggleMobileMenu()" aria-label="Menüyü aç" aria-expanded="false"><span></span><span></span><span></span></button>
+    <button id="mobileMenuBtn" class="hr-mobile-menu-btn" type="button" onclick="toggleMobileMenu()" aria-label="Menüyü aç" aria-expanded="false">☰</button>
     <button class="v5-brand-button" type="button" onclick="showPage('homePage');loadFeed();loadV4Home()" aria-label="Ana Sayfa">
       <span class="brand small v2-wordmark">HAKKARİ <span>ROLL</span><small>STREET COMMUNITY</small></span>
     </button>
@@ -361,6 +394,6 @@
 <script src="/vendor/tfjs"></script>
 <script src="/vendor/coco-ssd"></script>
 <script src="/vendor/tesseract"></script>
-<script src="/static/app.js?v=HRV5141-20260925"></script>
+<script src="/static/app.js?v=HRV5142-20260925"></script>
 </body>
 </html>
