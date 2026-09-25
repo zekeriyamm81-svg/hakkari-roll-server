@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
 from functools import wraps
-from flask import Flask,request,jsonify,render_template,send_from_directory
+from flask import Flask,request,jsonify,render_template,send_from_directory,Response
 from werkzeug.utils import secure_filename
 
 BASE=Path(__file__).resolve().parent
@@ -16,7 +16,7 @@ RESEND_API_KEY=os.environ.get('RESEND_API_KEY','').strip()
 RESEND_FROM=os.environ.get('RESEND_FROM','Hakkari Roll <noreply@zekyazilim.com>').strip()
 app=Flask(__name__);app.config['MAX_CONTENT_LENGTH']=100*1024*1024
 
-# Hakkari Roll V5.14.0 — canlı araç kataloğu + akıllı araç tarama
+# Hakkari Roll V5.14.1 — dayanıklı katalog + aynı-domain akıllı araç tarama
 VPIC_BASE='https://vpic.nhtsa.dot.gov/api/vehicles'
 VPIC_CACHE_TTL=24*60*60
 _vehicle_catalog_cache={'makes':None,'makes_at':0.0,'models':{}}
@@ -39,6 +39,38 @@ def _sort_make_key(row):
  u=str(row.get('name','')).upper()
  try:return (0,HR_COMMON_MAKES.index(u))
  except ValueError:return (1,u)
+
+_vendor_cache={}
+def _vendor_response(url,mimetype,cache_key=None):
+ key=cache_key or url;hit=_vendor_cache.get(key)
+ if hit is None:
+  req=urllib.request.Request(url,headers={'User-Agent':'HakkariRoll/5.14.1','Accept':'*/*'})
+  with urllib.request.urlopen(req,timeout=30) as r:hit=r.read()
+  _vendor_cache[key]=hit
+ return Response(hit,mimetype=mimetype,headers={'Cache-Control':'public, max-age=604800','Access-Control-Allow-Origin':'*'})
+
+@app.get('/vendor/tfjs')
+def vendor_tfjs():
+ try:return _vendor_response('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js','application/javascript','tfjs-4.22.0')
+ except Exception:return Response('console.warn("TensorFlow yüklenemedi")',status=200,mimetype='application/javascript')
+
+@app.get('/vendor/coco-ssd')
+def vendor_coco_ssd():
+ try:return _vendor_response('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js','application/javascript','coco-ssd-2.2.3')
+ except Exception:return Response('console.warn("COCO-SSD yüklenemedi")',status=200,mimetype='application/javascript')
+
+@app.get('/vendor/tesseract')
+def vendor_tesseract():
+ try:return _vendor_response('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js','application/javascript','tesseract-5')
+ except Exception:return Response('console.warn("Tesseract yüklenemedi")',status=200,mimetype='application/javascript')
+
+@app.get('/vendor/coco/<path:asset>')
+def vendor_coco_asset(asset):
+ safe=str(asset or '').replace('\\','/').strip('/')
+ if not safe or '..' in safe:return Response('bad asset',status=400)
+ ctype='application/json' if safe.endswith('.json') else 'application/octet-stream'
+ try:return _vendor_response('https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/'+safe,ctype,'coco:'+safe)
+ except Exception:return Response('model asset unavailable',status=502,mimetype='text/plain')
 
 try: APP_TZ=ZoneInfo('Europe/Istanbul')
 except Exception: APP_TZ=timezone(timedelta(hours=3))
