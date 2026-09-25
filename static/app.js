@@ -261,6 +261,27 @@ function v5NavIcon(name){
  };
  return icons[name]||"";
 }
+function toggleMobileMenu(force){
+ const open=typeof force==='boolean'?force:!document.body.classList.contains('hr-menu-open');
+ document.body.classList.toggle('hr-menu-open',open);
+ const panel=$('mobileSideMenu'),btn=$('mobileMenuBtn');if(panel)panel.setAttribute('aria-hidden',open?'false':'true');if(btn)btn.setAttribute('aria-expanded',open?'true':'false');
+}
+function mobileMenuGo(page,action){toggleMobileMenu(false);showPage(page);if(typeof action==='function')action()}
+function buildMobileSideMenu(){
+ const host=$('mobileSideMenu');if(!host||!me)return;
+ host.innerHTML=`<div class="hr-side-menu-head"><img src="/static/icons/icon.svg" alt=""><div><b>HAKKARİ ROLL</b><small>HIZLI MENÜ</small></div><button onclick="toggleMobileMenu(false)" aria-label="Menüyü kapat">✕</button></div>
+ <div class="hr-side-profile" onclick="toggleMobileMenu(false);openProfile(me.id)">${me.profile_photo?`<img src="/uploads/${encodeURIComponent(me.profile_photo)}" alt="">`:`<span>${esc((me.display_name||me.username||'HR').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase())}</span>`}<div><b>${esc(me.display_name||me.username)}</b><small>@${esc(me.username)}</small></div><em>›</em></div>
+ <div class="hr-side-menu-list">
+  <button onclick="mobileMenuGo('homePage',()=>{loadFeed();loadV4Home()})"><i>⌂</i><span><b>Ana Sayfa</b><small>Topluluk akışı</small></span><em>›</em></button>
+  <button onclick="mobileMenuGo('rollPage',loadRollHub)"><i>⌖</i><span><b>Roll Radar</b><small>Canlı araçlar</small></span><em>›</em></button>
+  <button onclick="mobileMenuGo('carsPage',()=>setGarageMode('mine'))"><i>🚘</i><span><b>Garaj</b><small>Araçlarını yönet</small></span><em>›</em></button>
+  <button onclick="mobileMenuGo('peoplePage',loadPeople)"><i>⌕</i><span><b>Ara & Keşfet</b><small>Kullanıcı ve araç bul</small></span><em>›</em></button>
+  <button onclick="mobileMenuGo('messagesPage',()=>{document.querySelector('#messagesPage')?.classList.remove('chat-open');loadConversations()})"><i>✉</i><span><b>Mesajlar</b><small>Sohbetlerin</small></span><em>›</em></button>
+  <button onclick="mobileMenuGo('eventsPage',loadEvents)"><i>◉</i><span><b>Etkinlikler</b><small>Buluşmalar</small></span><em>›</em></button>
+  <button onclick="mobileMenuGo('crewsPage',loadCrews)"><i>♟</i><span><b>Ekipler / Crew</b><small>Topluluk ekipleri</small></span><em>›</em></button>
+  ${me.role==='admin'?`<button class="admin" onclick="mobileMenuGo('adminPage',loadAdmin)"><i>◆</i><span><b>Yönetim</b><small>Admin merkezi</small></span><em>›</em></button>`:''}
+ </div><div class="hr-side-menu-foot"><button onclick="toggleMobileMenu(false);logout()">↪ ÇIKIŞ YAP</button><small>Güvenli sürüş • Trafik kurallarına uy</small></div>`;
+}
 function buildNav(){
  const items=[
   ["home","Ana Sayfa","homePage",()=>{loadFeed();loadV4Home()}],
@@ -278,6 +299,7 @@ function buildNav(){
   b.onclick=()=>{showPage(page);fn?.()};
   host.appendChild(b)
  });
+ buildMobileSideMenu();
  updateAppChrome();
 }
 function mainNavPage(id){
@@ -293,7 +315,7 @@ function showPage(id){
  target.classList.remove("hidden");
  const active=mainNavPage(id);
  document.querySelectorAll("#nav button[data-page]").forEach(b=>b.classList.toggle("active",!!active&&b.dataset.page===active));
- document.body.classList.remove("nav-open");
+ document.body.classList.remove("nav-open");toggleMobileMenu(false);
  if(id!=="messagesPage")stopMessageLive()
  window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -318,9 +340,12 @@ async function loadVehicleCatalog(){
   const d=await api('/api/vehicle-catalog/makes');vehicleMakes=d.makes||[];vehicleCatalog={makes:vehicleMakes};fillBrands();
  }catch(e){toast('Araç kataloğu yüklenemedi: '+e.message)}
 }
+function vehicleYearOptions(placeholder='Yıl seç'){const y=new Date().getFullYear()+1;let out=`<option value="">${placeholder}</option>`;for(let n=y;n>=1950;n--)out+=`<option value="${n}">${n}</option>`;return out}
 function fillBrands(){
- const options=vehicleMakes.map(x=>`<option value="${esc(x.name)}"></option>`).join('');
- ['vehicleBrandList','cameraBrandList'].forEach(id=>{const el=$(id);if(el)el.innerHTML=options});
+ const options=vehicleMakes.map(x=>`<option value="${esc(x.name)}">${esc(x.name)}</option>`).join('');
+ [['carBrand','Marka seç'],['cameraBrand','Marka seç']].forEach(([id,label])=>{const el=$(id);if(!el)return;const current=el.value;el.innerHTML=`<option value="">${label}</option>${options}`;if(current&&[...el.options].some(o=>o.value===current))el.value=current});
+ if($('carYear')&&$('carYear').options.length<3)$('carYear').innerHTML=vehicleYearOptions();
+ if($('cameraYear')&&$('cameraYear').options.length<3)$('cameraYear').innerHTML=vehicleYearOptions('Yıl seç (opsiyonel)');
 }
 function findVehicleMake(name){const q=String(name||'').trim().toLocaleLowerCase('tr-TR');return vehicleMakes.find(x=>String(x.name||'').toLocaleLowerCase('tr-TR')===q||String(x.raw_name||'').toLocaleLowerCase('tr-TR')===q)}
 async function getModelsForBrand(name){
@@ -331,9 +356,10 @@ async function getModelsForBrand(name){
  const d=await api(`/api/vehicle-catalog/models?${qs}`);const models=d.models||[];vehicleModelsByMake.set(key,models);return models;
 }
 async function catalogBrandChanged(){
- const brand=$('carBrand')?.value||'';const dl=$('vehicleModelList');if(!dl)return;
- dl.innerHTML='<option value="Modeller yükleniyor..."></option>';
- try{const models=await getModelsForBrand(brand);dl.innerHTML=models.map(x=>`<option value="${esc(x.name)}"></option>`).join('');if(!models.length)toast('Bu marka için model bulunamadı; modeli elle yazabilirsin.')}catch(e){dl.innerHTML='';toast(e.message)}
+ const brand=$('carBrand')?.value||'',sel=$('carModel');if(!sel)return;
+ sel.disabled=true;sel.innerHTML='<option value="">Modeller yükleniyor…</option>';
+ if(!brand){sel.innerHTML='<option value="">Önce marka seç</option>';return}
+ try{const models=await getModelsForBrand(brand);sel.innerHTML='<option value="">Model seç</option>'+models.map(x=>`<option value="${esc(x.name)}">${esc(x.name)}</option>`).join('');sel.disabled=false;if(!models.length){sel.innerHTML='<option value="">Model bulunamadı</option>';toast('Bu marka için katalogda model bulunamadı.')}}catch(e){sel.innerHTML='<option value="">Model yüklenemedi</option>';toast(e.message)}
 }
 function catalogModelChanged(){}
 function catalogEngineChanged(){}
@@ -527,43 +553,91 @@ function stopMessageTyping(){clearTimeout(typingStopTimer);typingStopTimer=null;
 async function sendMessage(){if(!activeConversation){toast("Önce bir sohbet seç.");return}const input=$("chatInput"),body=input.value.trim();if(!body)return;const old=body;input.value="";stopMessageTyping();try{await api(`/api/conversations/${activeConversation}/messages`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({body})});await pollConversationLive();loadConversations(true)}catch(e){input.value=old;toast(e.message)}}
 async function livePulse(){if(!token||!me||document.hidden)return;try{const d=await api('/api/v54/pulse');setMessageUnreadBadge(d.unread_messages);if($("notifCount"))$("notifCount").textContent=d.unread_notifications?String(d.unread_notifications):"";if($("liveCount"))$("liveCount").innerHTML=`<i></i> ${d.roll_count} ROLL AKTİF`;if($("v2HeroLive"))$("v2HeroLive").textContent=`${d.roll_count} CANLI`;if($("radarCount"))$("radarCount").textContent=`${d.roll_count} kişi`;if($("v5RollCount"))$("v5RollCount").textContent=d.roll_count;if($("v5RollStatus"))$("v5RollStatus").textContent=d.roll_status?`${d.roll_status} • Roll aktif`:"Şu an çevrimdışısın";if($("rollToggleBtn"))$("rollToggleBtn").innerHTML=d.roll_status?"🟢 ROLL AKTİF <b>→</b>":"ROLL AKTİF ET <b>→</b>";if($("v5RollToggleBtn"))$("v5RollToggleBtn").innerHTML=d.roll_status?"ROLL DURUMUNU YÖNET <b>→</b>":"ROLL AKTİF ET <b>→</b>";hrMapLiveTick++;if(!$("mapPage")?.classList.contains("hidden")&&hrMapLiveTick%2===0)loadRollMap(true)}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){livePulse();if(activeConversation)pollConversationLive()}});
-let adminVehicleStream=null,adminVehicleSnapshot=null,cameraOcrBusy=false;
-function normalizePlateText(v){return String(v||'').toUpperCase().replace(/[^0-9A-ZÇĞİÖŞÜ]/g,'')}
-function formatTurkishPlate(v){const s=normalizePlateText(v);const m=s.match(/^(\d{2})([A-ZÇĞİÖŞÜ]{1,3})(\d{2,5})$/);return m?`${m[1]} ${m[2]} ${m[3]}`:s}
+let adminVehicleStream=null,adminVehicleSnapshot=null,cameraOcrBusy=false,cameraVisionModel=null,cameraVisionLoop=null,cameraVisionBusy=false,cameraLastVehicle=null,cameraPlateCandidate='',cameraPlateHits=0,cameraAutoRegisterBusy=false,cameraVisionFailures=0,cameraLastOcrAt=0;
+const HR_VEHICLE_CLASSES=new Set(['car','truck','bus','motorcycle']);
+function normalizePlateText(v){return String(v||'').toLocaleUpperCase('tr-TR').replace(/[^0-9A-ZÇĞİÖŞÜ]/g,'')}
+function formatTurkishPlate(v){const raw=normalizePlateText(v),m=raw.match(/^(\d{0,2})([A-ZÇĞİÖŞÜ]{0,3})(\d{0,5})/);if(!m)return raw;return [m[1],m[2],m[3]].filter(Boolean).join(' ')}
 function normalizeCameraPlateField(){const el=$('cameraPlate');if(el)el.value=formatTurkishPlate(el.value)}
 function setCameraBrand(v){const el=$('cameraBrand');if(el){el.value=v;cameraBrandChanged()}}
+function setCameraVisionStatus(title,sub='',mode=''){if($('cameraVisionText'))$('cameraVisionText').textContent=title;if($('cameraVisionSub'))$('cameraVisionSub').textContent=sub;const dot=$('cameraVisionDot');if(dot)dot.className=mode||''}
+function setScanStep(step){const ids=['scanStepVehicle','scanStepPlate','scanStepInfo','scanStepSave'];ids.forEach((id,i)=>{const el=$(id);if(el){el.classList.toggle('active',i<=step);el.classList.toggle('done',i<step)}})}
 async function cameraBrandChanged(){
- const brand=$('cameraBrand')?.value||'';const dl=$('cameraModelList');if(dl)dl.innerHTML='';
+ const brand=$('cameraBrand')?.value||'',sel=$('cameraModel');if(sel){sel.disabled=true;sel.innerHTML='<option value="">Modeller yükleniyor…</option>'}
  if($('cameraBrandPreview'))$('cameraBrandPreview').innerHTML=brand?`${brandLogo(brand,'hr-camera-brand-logo')}<b>${esc(brand)}</b>`:'';
- try{const models=await getModelsForBrand(brand);if(dl)dl.innerHTML=models.map(x=>`<option value="${esc(x.name)}"></option>`).join('')}catch(e){}
+ if(!brand){if(sel)sel.innerHTML='<option value="">Önce marka seç</option>';return}
+ try{const models=await getModelsForBrand(brand);if(sel){sel.innerHTML='<option value="">Model seç</option>'+models.map(x=>`<option value="${esc(x.name)}">${esc(x.name)}</option>`).join('');sel.disabled=false}}catch(e){if(sel)sel.innerHTML='<option value="">Model yüklenemedi</option>';toast(e.message)}
+ tryAutoRegisterScannedVehicle();
+}
+function cameraModelChanged(){setScanStep(2);tryAutoRegisterScannedVehicle()}
+async function ensureVehicleVisionModel(){
+ if(cameraVisionModel)return cameraVisionModel;
+ if(!window.cocoSsd)throw new Error('Araç tanıma modülü yüklenemedi.');
+ setCameraVisionStatus('YAPAY ZEKA HAZIRLANIYOR','Araç tanıma modeli yükleniyor…','loading');$('cameraOcrState').textContent='MODEL YÜKLENİYOR';
+ cameraVisionModel=await cocoSsd.load({base:'lite_mobilenet_v2'});return cameraVisionModel;
 }
 async function startAdminVehicleCamera(){
- if(me?.role!=='admin')return toast('Yönetici yetkisi gerekli.');
- try{stopAdminVehicleCamera();adminVehicleStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});const v=$('adminVehicleCamera');v.srcObject=adminVehicleStream;await v.play();$('cameraScanBtn').disabled=false;$('cameraOcrState').textContent='KAMERA AÇIK'}catch(e){toast('Kamera açılamadı: '+e.message);$('cameraOcrState').textContent='KAMERA HATASI'}
-}
-function stopAdminVehicleCamera(){if(adminVehicleStream){adminVehicleStream.getTracks().forEach(t=>t.stop());adminVehicleStream=null}const v=$('adminVehicleCamera');if(v)v.srcObject=null;if($('cameraScanBtn'))$('cameraScanBtn').disabled=true;if($('cameraOcrState'))$('cameraOcrState').textContent='HAZIR'}
-function extractPlateFromOcr(text){const compact=String(text||'').toUpperCase().replace(/[^0-9A-ZÇĞİÖŞÜ\n ]/g,' ');const variants=[...compact.matchAll(/(?:^|\s)(\d{2})\s*([A-ZÇĞİÖŞÜ]{1,3})\s*(\d{2,5})(?=\s|$)/g)];if(variants.length)return `${variants[0][1]} ${variants[0][2]} ${variants[0][3]}`;const raw=normalizePlateText(compact);const m=raw.match(/(\d{2}[A-ZÇĞİÖŞÜ]{1,3}\d{2,5})/);return m?formatTurkishPlate(m[1]):''}
-function guessBrandFromOcr(text){const t=String(text||'').toLocaleUpperCase('tr-TR');const aliases={'MERCEDES':'Mercedes-Benz','MERCEDES BENZ':'Mercedes-Benz','VW':'Volkswagen','VOLKSWAGEN':'Volkswagen','SKODA':'Škoda','CITROEN':'Citroën','ALFA ROMEO':'Alfa Romeo','LAND ROVER':'Land Rover'};for(const [a,b] of Object.entries(aliases))if(t.includes(a))return b;const sorted=[...vehicleMakes].sort((a,b)=>String(b.name).length-String(a.name).length);const x=sorted.find(x=>t.includes(String(x.name||'').toLocaleUpperCase('tr-TR')));return x?.name||''}
-async function scanAdminVehicleCamera(){
- if(cameraOcrBusy)return;const v=$('adminVehicleCamera'),c=$('adminVehicleCanvas');if(!v?.videoWidth)return toast('Önce kamerayı aç.');cameraOcrBusy=true;$('cameraScanBtn').disabled=true;$('cameraOcrState').textContent='OKUNUYOR…';
+ if(!navigator.mediaDevices?.getUserMedia)return toast('Bu tarayıcı kamera erişimini desteklemiyor.');
  try{
-  c.width=v.videoWidth;c.height=v.videoHeight;const x=c.getContext('2d');x.drawImage(v,0,0,c.width,c.height);adminVehicleSnapshot=await new Promise(r=>c.toBlob(r,'image/jpeg',.88));
-  $('cameraFlash')?.classList.add('active');setTimeout(()=>$('cameraFlash')?.classList.remove('active'),160);
-  if(!window.Tesseract)throw new Error('OCR modülü yüklenemedi.');
-  const result=await Tesseract.recognize(c,'eng',{logger:m=>{if(m.status==='recognizing text')$('cameraOcrState').textContent=`OKUNUYOR %${Math.round((m.progress||0)*100)}`}});
-  const raw=result?.data?.text||'';$('cameraOcrRaw').textContent=raw?`OCR: ${raw.replace(/\s+/g,' ').trim().slice(0,220)}`:'Yazı algılanamadı.';
-  const plate=extractPlateFromOcr(raw);if(plate)$('cameraPlate').value=plate;const brand=guessBrandFromOcr(raw);if(brand){$('cameraBrand').value=brand;await cameraBrandChanged()}
-  $('cameraOcrState').textContent=plate?'PLAKA BULUNDU':'KONTROL ET';if(!plate)toast('Plaka otomatik bulunamadı; alanı elle düzeltebilirsin.')
- }catch(e){$('cameraOcrState').textContent='KONTROL ET';toast(e.message)}finally{cameraOcrBusy=false;$('cameraScanBtn').disabled=false}
+  stopAdminVehicleCamera();cameraPlateCandidate='';cameraPlateHits=0;cameraLastVehicle=null;cameraVisionFailures=0;adminVehicleSnapshot=null;
+  adminVehicleStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+  const v=$('adminVehicleCamera');v.srcObject=adminVehicleStream;await v.play();$('cameraScanBtn').disabled=false;$('cameraOcrState').textContent='ARAÇ ARANIYOR';setScanStep(0);setCameraVisionStatus('ARAÇ ARANIYOR','Aracı kadrajda mümkün olduğunca büyük göster','searching');
+  $('vehicleScanBox')?.classList.remove('locked');$('vehicleScanBox')?.style.setProperty('opacity','0');$('cameraDetectedCard')?.classList.add('hidden');
+  try{await ensureVehicleVisionModel();startVehicleVisionLoop()}catch(e){cameraVisionFailures++;$('cameraOcrState').textContent='MANUEL MOD';setCameraVisionStatus('MANUEL TARAMA','Araç modeli yüklenemedi; plaka taraması kullanılabilir.','warn');toast('Araç tanıma modeli yüklenemedi. Plakayı Şimdi Oku ile devam edebilirsin.')}
+ }catch(e){toast('Kamera açılamadı: '+e.message);$('cameraOcrState').textContent='KAMERA HATASI';setCameraVisionStatus('KAMERA HATASI',e.message,'error')}
 }
-async function registerScannedVehicle(){
- const plate=formatTurkishPlate($('cameraPlate')?.value),brand=String($('cameraBrand')?.value||'').trim(),model=String($('cameraModel')?.value||'').trim();
- if(!plate||!brand||!model)return toast('Plaka, marka ve model gerekli.');
- const fd=new FormData();fd.append('plate',plate);fd.append('brand',brand);fd.append('model',model);if(adminVehicleSnapshot)fd.append('photo',adminVehicleSnapshot,'vehicle.jpg');
- const b=$('cameraRegisterBtn');b.disabled=true;b.textContent='KAYDEDİLİYOR…';
- try{const d=await api('/api/admin/camera-register-vehicle',{method:'POST',body:fd});$('cameraLastResult').classList.remove('hidden');$('cameraLastResult').innerHTML=`<b>✓ ${esc(d.plate)} KAYDEDİLDİ</b><span>${esc(d.brand)} ${esc(d.model)}</span><small>Kullanıcı: @${esc(d.username)} • İlk şifre: ${esc(d.password)}</small>`;toast(d.message);$('cameraPlate').value='';$('cameraModel').value='';adminVehicleSnapshot=null;loadAdmin()}catch(e){toast(e.message)}finally{b.disabled=false;b.textContent='✓ ARAÇ + HESAP KAYDET'}
+function stopAdminVehicleCamera(){
+ if(cameraVisionLoop){clearTimeout(cameraVisionLoop);cameraVisionLoop=null}cameraVisionBusy=false;
+ if(adminVehicleStream){adminVehicleStream.getTracks().forEach(t=>t.stop());adminVehicleStream=null}const v=$('adminVehicleCamera');if(v)v.srcObject=null;
+ if($('cameraScanBtn'))$('cameraScanBtn').disabled=true;if($('cameraOcrState'))$('cameraOcrState').textContent='HAZIR';if($('vehicleScanBox'))$('vehicleScanBox').style.opacity='0';setCameraVisionStatus('KAMERA BEKLİYOR','Tarama başlatılmadı','');
 }
-
+function extractPlateFromOcr(text){
+ const compact=String(text||'').toUpperCase().replace(/[^0-9A-ZÇĞİÖŞÜ\n ]/g,' '),patterns=[...(compact.matchAll(/(?:^|\s)(\d{2})\s*([A-ZÇĞİÖŞÜ]{1,3})\s*(\d{2,5})(?=\s|$)/g))];
+ const accept=(p)=>{const n=Number(p.slice(0,2));return n>=1&&n<=81?p:''};if(patterns.length)return accept(`${patterns[0][1]} ${patterns[0][2]} ${patterns[0][3]}`);
+ const raw=normalizePlateText(compact),m=raw.match(/(\d{2}[A-ZÇĞİÖŞÜ]{1,3}\d{2,5})/);return m?accept(formatTurkishPlate(m[1])):'';
+}
+function guessBrandFromOcr(text){const t=String(text||'').toLocaleUpperCase('tr-TR');const aliases={'MERCEDES':'Mercedes-Benz','MERCEDES BENZ':'Mercedes-Benz','VW':'Volkswagen','VOLKSWAGEN':'Volkswagen','SKODA':'Škoda','CITROEN':'Citroën','ALFA ROMEO':'Alfa Romeo','LAND ROVER':'Land Rover'};for(const [a,b] of Object.entries(aliases))if(t.includes(a))return b;const sorted=[...vehicleMakes].sort((a,b)=>String(b.name).length-String(a.name).length);const x=sorted.find(x=>t.includes(String(x.name||'').toLocaleUpperCase('tr-TR')));return x?.name||''}
+function vehicleDisplayRect(pred){const stage=$('cameraScannerShell'),v=$('adminVehicleCamera');if(!stage||!v?.videoWidth)return null;const [x,y,w,h]=pred.bbox,sw=stage.clientWidth,sh=stage.clientHeight,scale=Math.max(sw/v.videoWidth,sh/v.videoHeight),ox=(sw-v.videoWidth*scale)/2,oy=(sh-v.videoHeight*scale)/2;return {left:x*scale+ox,top:y*scale+oy,width:w*scale,height:h*scale}}
+function showVehicleScanBox(pred){
+ const box=$('vehicleScanBox'),r=vehicleDisplayRect(pred);if(!box||!r)return;box.style.left=`${Math.max(0,r.left)}px`;box.style.top=`${Math.max(0,r.top)}px`;box.style.width=`${Math.min($('cameraScannerShell').clientWidth-Math.max(0,r.left),r.width)}px`;box.style.height=`${Math.min($('cameraScannerShell').clientHeight-Math.max(0,r.top),r.height)}px`;box.style.opacity='1';box.classList.add('locked');
+ if($('vehicleConfidence'))$('vehicleConfidence').textContent=`%${Math.round(pred.score*100)} GÜVEN`;if($('vehicleLockText'))$('vehicleLockText').textContent=pred.class==='truck'?'ARAÇ / KAMYON ALGILANDI':pred.class==='bus'?'ARAÇ / OTOBÜS ALGILANDI':'ARAÇ ALGILANDI';
+}
+async function startVehicleVisionLoop(){
+ if(!adminVehicleStream||!cameraVisionModel)return;if(cameraVisionLoop)clearTimeout(cameraVisionLoop);
+ const tick=async()=>{if(!adminVehicleStream)return;if(document.hidden){cameraVisionLoop=setTimeout(tick,900);return}if(cameraVisionBusy){cameraVisionLoop=setTimeout(tick,350);return}cameraVisionBusy=true;
+  try{const v=$('adminVehicleCamera');const predictions=await cameraVisionModel.detect(v,10,0.42);const candidates=predictions.filter(p=>HR_VEHICLE_CLASSES.has(p.class)).sort((a,b)=>(b.score*b.bbox[2]*b.bbox[3])-(a.score*a.bbox[2]*a.bbox[3]));const best=candidates[0];
+   if(best){cameraLastVehicle=best;showVehicleScanBox(best);$('cameraOcrState').textContent='ARAÇ KİLİTLENDİ';setCameraVisionStatus('ARAÇ KİLİTLENDİ',`Canlı algılama • %${Math.round(best.score*100)} güven`,'locked');setScanStep(1);if(!cameraOcrBusy&&!$('cameraDetectedCard')?.classList.contains('hidden')){}else if(!cameraOcrBusy&&cameraPlateHits<2&&Date.now()-cameraLastOcrAt>2800)scanAdminVehicleCamera(false)}
+   else{cameraLastVehicle=null;if($('vehicleScanBox'))$('vehicleScanBox').style.opacity='0';$('cameraOcrState').textContent='ARAÇ ARANIYOR';setCameraVisionStatus('ARAÇ ARANIYOR','Aracın tamamını kadraja al','searching');setScanStep(0)}
+  }catch(e){cameraVisionFailures++;if(cameraVisionFailures===3)setCameraVisionStatus('ALGILAMA YAVAŞLADI','Kamera açık; manuel plaka okuma kullanılabilir.','warn')}
+  finally{cameraVisionBusy=false;if(adminVehicleStream)cameraVisionLoop=setTimeout(tick,cameraPlateHits>=2?1100:750)}
+ };tick();
+}
+function cropVehiclePlateRegion(sourceCanvas,pred){
+ const out=document.createElement('canvas'),ctx=out.getContext('2d',{willReadFrequently:true}),v=$('adminVehicleCamera');let sx=0,sy=0,sw=v.videoWidth,sh=v.videoHeight;
+ if(pred?.bbox){const [x,y,w,h]=pred.bbox;sx=Math.max(0,x+w*.14);sy=Math.max(0,y+h*.56);sw=Math.min(v.videoWidth-sx,w*.72);sh=Math.min(v.videoHeight-sy,h*.30)}
+ const scale=Math.min(2.2,Math.max(1,1100/Math.max(sw,1)));out.width=Math.max(320,Math.round(sw*scale));out.height=Math.max(120,Math.round(sh*scale));ctx.drawImage(sourceCanvas,sx,sy,sw,sh,0,0,out.width,out.height);
+ try{const img=ctx.getImageData(0,0,out.width,out.height),d=img.data;for(let i=0;i<d.length;i+=4){const g=.299*d[i]+.587*d[i+1]+.114*d[i+2],v=g>145?255:0;d[i]=d[i+1]=d[i+2]=v}ctx.putImageData(img,0,0)}catch(e){}
+ return out;
+}
+function captureAdminVehicleFrame(){const v=$('adminVehicleCamera'),c=$('adminVehicleCanvas');if(!v?.videoWidth||!c)return null;c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0,c.width,c.height);return c}
+async function scanAdminVehicleCamera(manual=false){
+ if(cameraOcrBusy)return;const v=$('adminVehicleCamera');if(!v?.videoWidth)return toast('Önce kamerayı aç.');cameraOcrBusy=true;cameraLastOcrAt=Date.now();if($('cameraScanBtn'))$('cameraScanBtn').disabled=true;$('cameraOcrState').textContent='PLAKA TARANIYOR';setCameraVisionStatus('PLAKA TARANIYOR','Plaka bölgesi görüntüden ayrıştırılıyor…','scanning');
+ try{
+  const frame=captureAdminVehicleFrame();adminVehicleSnapshot=await new Promise(resolve=>frame.toBlob(resolve,'image/jpeg',.9));$('cameraFlash')?.classList.add('active');setTimeout(()=>$('cameraFlash')?.classList.remove('active'),150);
+  if(!window.Tesseract)throw new Error('OCR modülü yüklenemedi.');const roi=cropVehiclePlateRegion(frame,manual?null:cameraLastVehicle);
+  const result=await Tesseract.recognize(roi,'eng',{logger:m=>{if(m.status==='recognizing text')$('cameraOcrState').textContent=`PLAKA %${Math.round((m.progress||0)*100)}`}});const raw=result?.data?.text||'';$('cameraOcrRaw').textContent=raw?`OCR: ${raw.replace(/\s+/g,' ').trim().slice(0,180)}`:'Plaka bölgesinde yazı algılanamadı.';
+  const plate=extractPlateFromOcr(raw);if(plate){if(plate===cameraPlateCandidate)cameraPlateHits++;else{cameraPlateCandidate=plate;cameraPlateHits=1}$('cameraPlate').value=plate;setScanStep(1);if(cameraPlateHits>=2||manual){confirmCameraPlate(plate)}else{setCameraVisionStatus('PLAKA DOĞRULANIYOR',`${plate} • ikinci okuma bekleniyor`,'scanning');$('cameraOcrState').textContent='DOĞRULANIYOR'}}else{if(manual)toast('Plaka otomatik bulunamadı. Aracı/plakayı daha net gösterip tekrar dene.');setCameraVisionStatus(cameraLastVehicle?'ARAÇ KİLİTLİ':'ARAÇ ARANIYOR',cameraLastVehicle?'Plaka için yeniden taranacak':'Aracı kadraja al',cameraLastVehicle?'locked':'searching')}
+ }catch(e){$('cameraOcrState').textContent='KONTROL ET';setCameraVisionStatus('TARAMA HATASI',e.message,'warn');if(manual)toast(e.message)}finally{cameraOcrBusy=false;if($('cameraScanBtn'))$('cameraScanBtn').disabled=false}
+}
+function confirmCameraPlate(plate){
+ $('cameraPlate').value=plate;$('cameraOcrState').textContent='PLAKA TANINDI';setScanStep(2);setCameraVisionStatus('PLAKA TANINDI',`${plate} • araç fotoğrafı hazır`,'success');const card=$('cameraDetectedCard');card?.classList.remove('hidden');if($('cameraDetectedPlate'))$('cameraDetectedPlate').textContent=plate;if(navigator.vibrate)navigator.vibrate([60,40,80]);tryAutoRegisterScannedVehicle();
+}
+async function tryAutoRegisterScannedVehicle(){const plate=formatTurkishPlate($('cameraPlate')?.value),brand=$('cameraBrand')?.value||'',model=$('cameraModel')?.value||'';if(!plate||!brand||!model||!$('cameraAutoSave')?.checked||cameraAutoRegisterBusy)return;cameraAutoRegisterBusy=true;setTimeout(async()=>{try{await registerScannedVehicle(true)}finally{cameraAutoRegisterBusy=false}},450)}
+async function registerScannedVehicle(auto=false){
+ const plate=formatTurkishPlate($('cameraPlate')?.value),brand=String($('cameraBrand')?.value||'').trim(),model=String($('cameraModel')?.value||'').trim();if(!plate||!brand||!model){if(!auto)toast('Önce plaka, marka ve modeli tamamla.');return}
+ const fd=new FormData();fd.append('plate',plate);fd.append('brand',brand);fd.append('model',model);fd.append('model_year',$('cameraYear')?.value||'');if(adminVehicleSnapshot)fd.append('photo',adminVehicleSnapshot,`${plate.replace(/\s+/g,'')}.jpg`);
+ const b=$('cameraRegisterBtn');if(b){b.disabled=true;b.textContent='KAYDEDİLİYOR…'};$('cameraOcrState').textContent='KAYDEDİLİYOR';setScanStep(3);setCameraVisionStatus('KAYIT OLUŞTURULUYOR','Araç, kullanıcı hesabı ve garaj kaydı hazırlanıyor…','scanning');
+ try{const d=await api('/api/admin/camera-register-vehicle',{method:'POST',body:fd});stopAdminVehicleCamera();$('cameraLastResult').classList.remove('hidden');$('cameraLastResult').innerHTML=`<div class="hr-success-icon">✓</div><div><small>AKILLI TARAMA TAMAMLANDI</small><b>${esc(d.plate)} KAYDEDİLDİ</b><span>${esc(d.brand)} ${esc(d.model)}${d.model_year?` • ${esc(d.model_year)}`:''}</span><em>Kullanıcı: @${esc(d.username)} • İlk şifre: ${esc(d.password)}</em></div><button onclick="startAdminVehicleCamera()">YENİ ARAÇ TARA</button>`;toast(d.message);$('cameraPlate').value='';$('cameraBrand').value='';$('cameraModel').innerHTML='<option value="">Önce marka seç</option>';$('cameraModel').disabled=true;$('cameraDetectedCard').classList.add('hidden');cameraPlateCandidate='';cameraPlateHits=0;adminVehicleSnapshot=null;loadAdmin()}catch(e){setCameraVisionStatus('KAYIT TAMAMLANAMADI',e.message,'error');$('cameraOcrState').textContent='KONTROL ET';if(!auto||e.message)toast(e.message)}finally{if(b){b.disabled=false;b.textContent='✓ ARAÇ + HESAP KAYDET'}}
+}
 let adminUsersCache=[];function adminTab(id){document.querySelectorAll(".adminbox").forEach(x=>x.classList.add("hidden"));$(id).classList.remove("hidden");if(id==="adminWeeklyBox")loadWeeklyPickers();if(id==="adminAnnouncementsBox")loadAdminAnnouncements();if(id==="adminCameraBox"){fillBrands();if($('cameraBrand')?.value)cameraBrandChanged()}}async function loadAdmin(){try{const [s,u,r,st,a]=await Promise.all([api("/api/admin/stats"),api("/api/admin/users"),api("/api/admin/reports"),api("/api/admin/settings"),api("/api/admin/audit")]);$("adminStats").innerHTML=Object.entries(s.stats).map(([k,v])=>`<div class="stat"><strong>${v}</strong>${esc(k)}</div>`).join("");adminUsersCache=u.users;renderAdminUsers();$("adminReports").innerHTML=r.reports.map(x=>`<div class="panel"><b>${esc(x.target_type)} #${x.target_id}</b><div class="meta">@${esc(x.reporter_username)} • ${esc(x.status)}</div><p>${esc(x.reason||"")}</p><div class="admin-actions">${x.status==="open"?`<button onclick="adminCloseReport(${x.id})">KAPAT</button>`:""}${["post","comment","vehicle"].includes(x.target_type)?`<button class="danger" onclick="adminDeleteContent('${x.target_type}',${x.target_id})">İÇERİĞİ SİL</button>`:""}${x.target_type==="user"?`<button onclick="adminBan(${x.target_id})">BANLA</button><button class="danger" onclick="adminDeleteUser(${x.target_id})">HESABI SİL</button>`:""}</div></div>`).join("");$("regMode").value=st.settings.registration_mode||"approval";$("regLimit").value=st.settings.daily_ip_registration_limit||3;$("adminAudit").innerHTML=a.logs.map(x=>`<div class="panel"><b>${esc(x.action)}</b><div class="meta">@${esc(x.admin_username||"sistem")} • ${esc(x.created_at||"")}</div></div>`).join("")}catch(e){toast(e.message)}}function renderAdminUsers(){const q=($("adminUserSearch")?.value||"").toLowerCase();$("adminUsers").innerHTML=adminUsersCache.filter(u=>`${u.username} ${u.display_name} ${u.email||""}`.toLowerCase().includes(q)).map(u=>`<div class="panel admin-user ${u.vip?"vip-card":""}"><div><div class="name">${esc(u.display_name)} @${esc(u.username)} ${u.vip?`<span class="vip-badge">★ VIP</span>`:""} ${!u.approved?`<span class="pending-badge">ONAY</span>`:""} ${u.banned?`<span class="ban-badge">BANLI</span>`:""}</div><div class="meta">${esc(u.email||"E-posta yok")} • ${u.role} • ${u.active?"Aktif":"Pasif"}</div></div><div class="admin-actions">${!u.approved?`<button class="cta" onclick="adminApprove(${u.id})">ONAYLA</button>`:""}<button onclick="adminVip(${u.id})">${u.vip?"VIP KALDIR":"VIP YAP"}</button><button onclick="adminBan(${u.id})">BANLA</button>${u.banned?`<button onclick="adminUnban(${u.id})">BAN KALDIR</button>`:""}<button onclick="adminResetPassword(${u.id})">ŞİFRE</button><button onclick="adminToggleActive(${u.id})">${u.active?"PASİF":"AKTİF"}</button>${(u.role!=="admin"||u.created_by===me.id)&&u.id!==me.id?`<button class="danger" onclick="adminDeleteUser(${u.id})">SİL</button>`:""}</div></div>`).join("")}async function adminCreateUser(){try{const d=await api("/api/admin/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({display_name:$("acuName").value,username:$("acuUser").value,email:$("acuEmail").value,password:$("acuPass").value,role:$("acuRole").value,vip:$("acuVip").checked})});await appNotice("Hesap Oluşturuldu",`Kullanıcı: ${d.username}
 Şifre: ${d.password}`,"TAMAM");loadAdmin()}catch(e){toast(e.message)}}async function adminApprove(id){await api(`/api/admin/users/${id}/approve`,{method:"POST"});loadAdmin()}async function adminVip(id){await api(`/api/admin/users/${id}/vip`,{method:"POST"});loadAdmin()}async function adminBan(id){const r=await appDialog({title:"Kullanıcıyı Banla",message:"Ban süresini ve sebebini seç.",confirmText:"BANLA",danger:true,fields:[{name:"minutes",label:"Ban süresi",type:"select",value:"1440",options:[{value:"60",label:"1 saat"},{value:"1440",label:"1 gün"},{value:"10080",label:"7 gün"},{value:"43200",label:"30 gün"},{value:"5256000",label:"Uzun süre / kalıcı"}]},{name:"reason",label:"Sebep",type:"textarea",placeholder:"Ban sebebi...",maxLength:500}]});if(!r)return;await api(`/api/admin/users/${id}/ban`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({minutes:+r.minutes,reason:r.reason||""})});toast("Kullanıcı banlandı.");loadAdmin()}async function adminUnban(id){await api(`/api/admin/users/${id}/unban`,{method:"POST"});loadAdmin()}async function adminResetPassword(id){const r=await appDialog({title:"Şifreyi Sıfırla",message:"Yeni şifreyi boş bırakırsan sistem güvenli bir şifre oluşturur.",confirmText:"ŞİFREYİ YENİLE",fields:[{name:"password",label:"Yeni şifre",type:"password",placeholder:"Boş bırak = otomatik",autocomplete:"new-password",maxLength:100}]});if(!r)return;const d=await api(`/api/admin/users/${id}/reset-password`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:r.password})});await appNotice("Yeni Şifre Oluşturuldu",`Yeni şifre: ${d.password}`,"TAMAM")}async function adminToggleActive(id){await api(`/api/admin/users/${id}/toggle-active`,{method:"POST"});loadAdmin()}async function adminDeleteUser(id){if(!(await appConfirm("Hesabı Kalıcı Sil","Bu işlem geri alınamaz. Kullanıcının hesabı ve ilişkili verileri silinecek.","HESABI SİL")))return;await api(`/api/admin/users/${id}`,{method:"DELETE"});toast("Hesap silindi.");loadAdmin()}async function adminCloseReport(id){await api(`/api/admin/reports/${id}/close`,{method:"POST"});loadAdmin()}async function adminDeleteContent(t,id){if(!(await appConfirm("İçeriği Sil","Şikâyet edilen içerik kalıcı olarak kaldırılacak.","İÇERİĞİ SİL")))return;await api(`/api/admin/content/${t}/${id}`,{method:"DELETE"});toast("İçerik silindi.");loadAdmin()}async function saveAdminSettings(){const d=await api("/api/admin/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({registration_mode:$("regMode").value,daily_ip_registration_limit:+$("regLimit").value})});toast(d.message)}
 if("serviceWorker" in navigator)navigator.serviceWorker.register("/service-worker.js").catch(()=>{});if(token&&me)showApp();else showLogin();
